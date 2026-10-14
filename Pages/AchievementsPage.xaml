@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             x:Class="CardexMobile.Pages.AchievementsPage"
+             x:DataType="vm:AchievementsPageViewModel"
+             Title="Achievements"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <!-- Grid à 3 colonnes (icône / texte / repère vide de même largeur) pour que le TEXTE soit
+         visuellement centré dans la barre de titre, pas le bloc icône+texte dans son ensemble
+         (sinon l'icône à gauche décale visuellement tout vers la droite). -->
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="32,Auto,32" HorizontalOptions="Center">
+            <Image Grid.Column="0" Source="trophy_icon.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFit" HorizontalOptions="Start" VerticalOptions="Center"/>
+            <Label Grid.Column="1" Text="Achievements" TextColor="White" FontAttributes="Bold" FontSize="18" Margin="10,0" VerticalOptions="Center"/>
+        </Grid>
+    </Shell.TitleView>
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+        <ScrollView>
+            <VerticalStackLayout Padding="0,8,0,24">
+
+                <Label Text="{Binding ProgressText}"
+                       TextColor="{StaticResource TextSecondary}"
+                       FontSize="12"
+                       HorizontalOptions="Center"
+                       Padding="16,8,16,12"/>
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AchievementItem">
+                            <Grid ColumnDefinitions="44,*,Auto"
+                                  Padding="16,10"
+                                  ColumnSpacing="12"
+                                  BackgroundColor="{StaticResource PanelBackground}"
+                                  Opacity="{Binding RowOpacity}"
+                                  Margin="0,0,0,1">
+
+                                <Image Grid.Column="0"
+                                       Source="{Binding IconSource}"
+                                       WidthRequest="34"
+                                       HeightRequest="34"
+                                       Aspect="AspectFit"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding HasIcon}"/>
+                                <Label Grid.Column="0"
+                                       Text="{Binding Emoji}"
+                                       FontSize="26"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding HasNoIcon}"/>
+
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                    <Label Text="{Binding Name}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"/>
+                                    <Label Text="{Binding DisplayDescription}"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           FontSize="11"/>
+                                </VerticalStackLayout>
+
+                                <Label Grid.Column="2"
+                                       Text="{Binding StatusText}"
+                                       TextColor="{StaticResource HighlightColor}"
+                                       FontSize="10"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End"/>
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

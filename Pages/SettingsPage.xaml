@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             x:Class="CardexMobile.Pages.SettingsPage"
+             x:DataType="vm:SettingsPageViewModel"
+             Title="Settings"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <!-- Grid à 3 colonnes (icône / texte / repère vide de même largeur) pour que le TEXTE soit
+         visuellement centré dans la barre de titre, pas le bloc icône+texte dans son ensemble. -->
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="32,Auto,32" HorizontalOptions="Center">
+            <Image Grid.Column="0" Source="settings_icon.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFit" HorizontalOptions="Start" VerticalOptions="Center"/>
+            <Label Grid.Column="1" Text="Settings" TextColor="White" FontAttributes="Bold" FontSize="18" Margin="10,0" VerticalOptions="Center"/>
+        </Grid>
+    </Shell.TitleView>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="0,8,0,24">
+
+            <Label Text="DISPLAY"
+                   TextColor="White"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   CharacterSpacing="1"
+                   Padding="16,10,16,4"/>
+
+            <Grid ColumnDefinitions="*,Auto"
+                  Padding="16,10"
+                  BackgroundColor="{StaticResource PanelBackground}">
+                <Label Grid.Column="0"
+                       Text="Show My Collection section"
+                       TextColor="{StaticResource TextPrimary}"
+                       FontSize="14"
+                       VerticalOptions="Center"/>
+                <Switch Grid.Column="1"
+                        IsToggled="{Binding ShowMyCollection}"
+                        OnColor="{StaticResource HighlightColor}"/>
+            </Grid>
+
+            <Label Text="COLLECTION BORDER COLOR"
+                   TextColor="White"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   CharacterSpacing="1"
+                   Padding="16,18,16,8"/>
+
+            <Label Text="Highlights sets you own cards in, on the Sets and Collection lists."
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   Padding="16,0,16,10"/>
+
+            <FlexLayout x:Name="SwatchLayout"
+                        BindableLayout.ItemsSource="{Binding BorderColorSwatches}"
+                        Wrap="Wrap"
+                        Direction="Row"
+                        Margin="12,0,12,0">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ColorSwatch">
+                        <Border BackgroundColor="{Binding Color}"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                StrokeThickness="2"
+                                Stroke="Transparent"
+                                Margin="4">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="6"/>
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSwatchTapped"/>
+                            </Border.GestureRecognizers>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+
+            <Label Text="SYNC"
+                   TextColor="White"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   CharacterSpacing="1"
+                   Padding="16,18,16,4"/>
+
+            <Label Text="Syncs your collection, wants, tags and achievements with the desktop app. Get a free key at cardex-api.dev and paste it below."
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   Padding="16,0,16,10"/>
+
+            <Entry Text="{Binding CollectionSyncApiKey}"
+                   Placeholder="Cardex API key"
+                   TextColor="{StaticResource TextPrimary}"
+                   PlaceholderColor="{StaticResource TextSecondary}"
+                   BackgroundColor="{StaticResource PanelBackground}"
+                   Margin="16,0,16,10"/>
+
+            <Button Text="🔄  Sync now"
+                    Command="{Binding SyncNowCommand}"
+                    BackgroundColor="{StaticResource PanelBackground}"
+                    TextColor="{StaticResource TextPrimary}"
+                    HorizontalOptions="Start"
+                    Margin="16,0,16,6"/>
+
+            <Label Text="{Binding LastSyncStatusText}"
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   Padding="16,0,16,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

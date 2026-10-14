@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             x:Class="CardexMobile.Pages.SetsPage"
+             x:DataType="vm:SetsPageViewModel"
+             Title="Sets"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Shell.TitleView>
+        <Image Source="appname.png"
+               HeightRequest="28"
+               Aspect="AspectFit"
+               HorizontalOptions="Center"/>
+    </Shell.TitleView>
+
+    <Grid RowDefinitions="*">
+
+        <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding LoadCommand}"
+                     RefreshColor="{StaticResource HighlightColor}">
+
+            <CollectionView x:Name="SetsView"
+                            ItemsSource="{Binding Groups}"
+                            IsGrouped="True"
+                            BackgroundColor="{StaticResource PageBackground}">
+
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="vm:SeriesGroup">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="16,14,16,4"
+                              BackgroundColor="{StaticResource PageBackground}">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}"/>
+                            </Grid.GestureRecognizers>
+                            <Label Grid.Column="0" Text="{Binding Name}"
+                                   TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Label Grid.Column="1" Text="{Binding Chevron}"
+                                   TextColor="{StaticResource TextSecondary}" FontSize="11"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SetItem">
+                        <Border StrokeThickness="2"
+                                StrokeShape="RoundRectangle 4"
+                                BackgroundColor="{StaticResource PanelBackground}"
+                                Margin="0,0,0,1"
+                                Padding="0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Stroke" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding HasOwnedCards}" Value="True">
+                                            <Setter Property="Stroke" Value="{Binding BorderColor}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSetItemTapped"/>
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="88,*,Auto"
+                                  Padding="12,8"
+                                  ColumnSpacing="12">
+
+                                <Image Grid.Column="0"
+                                       Source="{Binding LogoUrl}"
+                                       HeightRequest="38"
+                                       Aspect="AspectFit"
+                                       HorizontalOptions="Start"/>
+
+                                <Label Grid.Column="1"
+                                       Text="{Binding Name}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       VerticalOptions="Center"
+                                       FontSize="13"
+                                       LineBreakMode="TailTruncation"/>
+
+                                <Label Grid.Column="2"
+                                       Text="{Binding CompletionText}"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       VerticalOptions="Center"
+                                       FontSize="12"
+                                       MinimumWidthRequest="48"
+                                       HorizontalTextAlignment="End"/>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <Label Text="No sets found — check your connection"
+                           TextColor="{StaticResource TextSecondary}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           FontSize="14"
+                           Margin="32"
+                           IsVisible="{Binding IsNotBusy}"/>
+                </CollectionView.EmptyView>
+
+            </CollectionView>
+
+        </RefreshView>
+
+        <ActivityIndicator IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="{StaticResource HighlightColor}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center"/>
+
+    </Grid>
+
+</ContentPage>

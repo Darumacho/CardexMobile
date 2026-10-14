@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             x:Class="CardexMobile.Pages.CollectionPage"
+             x:DataType="vm:CollectionPageViewModel"
+             Title="Collection"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Shell.TitleView>
+        <Image Source="appname.png"
+               HeightRequest="28"
+               Aspect="AspectFit"
+               HorizontalOptions="Center"/>
+    </Shell.TitleView>
+
+    <ContentPage.Resources>
+        <DataTemplate x:Key="SetRowTemplate" x:DataType="vm:SetItem">
+            <Border StrokeThickness="2"
+                    StrokeShape="RoundRectangle 4"
+                    BackgroundColor="{StaticResource PanelBackground}"
+                    Margin="0,0,0,1"
+                    Padding="0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Stroke" Value="Transparent"/>
+                        <Style.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding HasOwnedCards}" Value="True">
+                                <Setter Property="Stroke" Value="{Binding BorderColor}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnSetItemTapped"/>
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="64,*,Auto"
+                      Padding="12,8"
+                      ColumnSpacing="12">
+
+                    <Image Grid.Column="0" Source="{Binding LogoUrl}" Aspect="AspectFit" HorizontalOptions="Start"/>
+
+                    <Label Grid.Column="1"
+                           Text="{Binding Name}"
+                           TextColor="{StaticResource TextPrimary}"
+                           VerticalOptions="Center"
+                           FontSize="13"
+                           LineBreakMode="TailTruncation"/>
+
+                    <Label Grid.Column="2"
+                           Text="{Binding CompletionText}"
+                           TextColor="{StaticResource TextSecondary}"
+                           VerticalOptions="Center"
+                           FontSize="12"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CardRowTemplate" x:DataType="vm:CardListItem">
+            <Grid ColumnDefinitions="56,*,Auto"
+                  Padding="12,8"
+                  ColumnSpacing="12"
+                  BackgroundColor="{StaticResource PanelBackground}"
+                  Margin="0,0,0,1">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCardItemTapped"/>
+                </Grid.GestureRecognizers>
+
+                <Image Grid.Column="0" Source="{Binding ImageUrl}" Aspect="AspectFit"/>
+
+                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                    <Label Text="{Binding Name}"
+                           TextColor="{StaticResource TextPrimary}"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           LineBreakMode="TailTruncation"/>
+                    <Label TextColor="{StaticResource TextSecondary}" FontSize="11">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding SetName}"/>
+                                <Span Text=" · #"/>
+                                <Span Text="{Binding Number}"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+
+                <Label Grid.Column="2"
+                       Text="{Binding OwnedQuantity}"
+                       TextColor="{StaticResource HighlightColor}"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       IsVisible="{Binding HasOwned}"/>
+            </Grid>
+        </DataTemplate>
+    </ContentPage.Resources>
+
+    <Grid>
+        <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+            <ScrollView>
+                <VerticalStackLayout>
+
+                    <!-- Favoris -->
+                    <VerticalStackLayout IsVisible="{Binding HasFavorites}">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="16,14,16,4"
+                              BackgroundColor="{StaticResource PageBackground}">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleFavoritesExpandedCommand}"/>
+                            </Grid.GestureRecognizers>
+                            <Label Grid.Column="0" Text="FAVORITES"
+                                   TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Label Grid.Column="1" Text="{Binding FavoritesChevron}"
+                                   TextColor="{StaticResource TextSecondary}" FontSize="11"/>
+                        </Grid>
+                        <VerticalStackLayout IsVisible="{Binding FavoritesExpanded}"
+                                             BindableLayout.ItemsSource="{Binding Favorites}"
+                                             BindableLayout.ItemTemplate="{StaticResource SetRowTemplate}"/>
+                    </VerticalStackLayout>
+
+                    <!-- My Collection -->
+                    <VerticalStackLayout IsVisible="{Binding HasMyCollection}">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="16,14,16,4"
+                              BackgroundColor="{StaticResource PageBackground}">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleMyCollectionExpandedCommand}"/>
+                            </Grid.GestureRecognizers>
+                            <Label Grid.Column="0" Text="MY COLLECTION"
+                                   TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Label Grid.Column="1" Text="{Binding MyCollectionChevron}"
+                                   TextColor="{StaticResource TextSecondary}" FontSize="11"/>
+                        </Grid>
+                        <VerticalStackLayout IsVisible="{Binding MyCollectionExpanded}"
+                                             BindableLayout.ItemsSource="{Binding MyCollection}"
+                                             BindableLayout.ItemTemplate="{StaticResource SetRowTemplate}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Wanted -->
+                    <VerticalStackLayout IsVisible="{Binding HasWanted}">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="16,14,16,4"
+                              BackgroundColor="{StaticResource PageBackground}">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleWantedExpandedCommand}"/>
+                            </Grid.GestureRecognizers>
+                            <Label Grid.Column="0" Text="WANTED"
+                                   TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Label Grid.Column="1" Text="{Binding WantedChevron}"
+                                   TextColor="{StaticResource TextSecondary}" FontSize="11"/>
+                        </Grid>
+                        <VerticalStackLayout IsVisible="{Binding WantedExpanded}"
+                                             BindableLayout.ItemsSource="{Binding Wanted}"
+                                             BindableLayout.ItemTemplate="{StaticResource CardRowTemplate}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Duplicates -->
+                    <VerticalStackLayout IsVisible="{Binding HasDuplicates}">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="16,14,16,4"
+                              BackgroundColor="{StaticResource PageBackground}">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleDuplicatesExpandedCommand}"/>
+                            </Grid.GestureRecognizers>
+                            <Label Grid.Column="0" Text="DUPLICATES"
+                                   TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Label Grid.Column="1" Text="{Binding DuplicatesChevron}"
+                                   TextColor="{StaticResource TextSecondary}" FontSize="11"/>
+                        </Grid>
+                        <VerticalStackLayout IsVisible="{Binding DuplicatesExpanded}"
+                                             BindableLayout.ItemsSource="{Binding Duplicates}"
+                                             BindableLayout.ItemTemplate="{StaticResource CardRowTemplate}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Sections par tag (cartes taguées) — même emplacement que TagSections sur
+                         la page d'accueil desktop, après Duplicates. -->
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding TagSections}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TagSectionItem">
+                                <VerticalStackLayout>
+                                    <Grid ColumnDefinitions="16,*,Auto"
+                                          ColumnSpacing="8"
+                                          Padding="16,14,16,4"
+                                          BackgroundColor="{StaticResource PageBackground}">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}"/>
+                                        </Grid.GestureRecognizers>
+                                        <Border Grid.Column="0"
+                                                BackgroundColor="{Binding Tag.SwatchColor}"
+                                                WidthRequest="12" HeightRequest="12"
+                                                StrokeThickness="0"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="3"/>
+                                            </Border.StrokeShape>
+                                        </Border>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Tag.Name}"
+                                               TextColor="White"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               CharacterSpacing="1"
+                                               VerticalOptions="Center"/>
+                                        <Label Grid.Column="2"
+                                               Text="{Binding Chevron}"
+                                               TextColor="{StaticResource TextSecondary}"
+                                               FontSize="11"/>
+                                    </Grid>
+                                    <VerticalStackLayout IsVisible="{Binding IsExpanded}"
+                                                         BindableLayout.ItemsSource="{Binding Cards}"
+                                                         BindableLayout.ItemTemplate="{StaticResource CardRowTemplate}"/>
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Label Text="Nothing to show yet — mark favorite sets or wanted cards from a set."
+                           TextColor="{StaticResource TextSecondary}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"
+                           FontSize="14"
+                           Margin="32"
+                           IsVisible="{Binding HasNothing}"/>
+
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+    </Grid>
+
+</ContentPage>

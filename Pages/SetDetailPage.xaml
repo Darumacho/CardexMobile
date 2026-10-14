@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="CardexMobile.Pages.SetDetailPage"
+             x:DataType="vm:SetDetailPageViewModel"
+             Title="{Binding SetName}"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <!-- Logo du set à la place du nom dans la barre de titre, avec repli sur le texte si le set
+         n'a pas de logo (ex. certains sets de secours TCGdex). -->
+    <Shell.TitleView>
+        <Grid>
+            <Image Source="{Binding LogoUrl}"
+                   Aspect="AspectFit"
+                   HeightRequest="32"
+                   IsVisible="{Binding HasLogo}"/>
+            <Label Text="{Binding SetName}"
+                   TextColor="{StaticResource TextPrimary}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   IsVisible="{Binding NoLogo}"/>
+        </Grid>
+    </Shell.TitleView>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Search bar -->
+        <SearchBar Grid.Row="0"
+                   Text="{Binding SearchText}"
+                   Placeholder="Search by name or number…"
+                   PlaceholderColor="{StaticResource TextSecondary}"
+                   TextColor="{StaticResource TextPrimary}"
+                   BackgroundColor="{StaticResource PanelBackground}"
+                   CancelButtonColor="{StaticResource TextSecondary}"/>
+
+        <!-- Completion header -->
+        <Grid Grid.Row="1" BackgroundColor="{StaticResource PanelBackground}">
+
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto"
+                  Padding="16,8">
+                <Button Grid.Column="0"
+                        Text="{Binding SetFavoriteIcon}"
+                        Command="{Binding ToggleSetFavoriteCommand}"
+                        FontSize="18"
+                        Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        WidthRequest="36"
+                        HeightRequest="36"
+                        Margin="0,0,4,0">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding IsSetFavorite}"
+                                     Value="True">
+                            <Setter Property="TextColor" Value="{StaticResource WantedColor}"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding IsSetFavorite}"
+                                     Value="False">
+                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button Grid.Column="1"
+                        Text="⊞"
+                        Command="{Binding ToggleViewModeCommand}"
+                        FontSize="18"
+                        Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        TextColor="{StaticResource TextSecondary}"
+                        WidthRequest="36"
+                        HeightRequest="36"
+                        Margin="0,0,8,0"/>
+                <ProgressBar Grid.Column="2"
+                             Progress="{Binding CompletionRatio}"
+                             ProgressColor="{StaticResource HighlightColor}"
+                             VerticalOptions="Center"/>
+                <Label Grid.Column="3"
+                       Text="{Binding CompletionText}"
+                       TextColor="{StaticResource TextPrimary}"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       Margin="12,0,0,0"/>
+            </Grid>
+        </Grid>
+
+        <!-- Card list -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding FilteredCards}"
+                        IsVisible="{Binding IsListView}"
+                        BackgroundColor="{StaticResource PageBackground}">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:CardItem">
+
+                    <Grid ColumnDefinitions="80,*"
+                          ColumnSpacing="10"
+                          Padding="10,8"
+                          BackgroundColor="{StaticResource PanelBackground}"
+                          Margin="0,0,0,1"
+                          Opacity="{Binding ExcludedOpacity}">
+
+                        <!-- Card image — tap pour la vue HD -->
+                        <Image Grid.Column="0"
+                               Source="{Binding ImageUrl}"
+                               Aspect="AspectFit">
+                            <Image.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCardImageTapped"/>
+                            </Image.GestureRecognizers>
+                        </Image>
+
+                        <!-- Card info -->
+                        <Grid Grid.Column="1"
+                              RowDefinitions="Auto,Auto,Auto,Auto"
+                              RowSpacing="5">
+
+                            <!-- Row 0: Number + Name + Favorite + Excluded -->
+                            <Grid Grid.Row="0" ColumnDefinitions="*,36,36" ColumnSpacing="2">
+                                <Label Grid.Column="0"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding Number}"
+                                                  TextColor="{StaticResource TextSecondary}"
+                                                  FontSize="11"/>
+                                            <Span Text="  "/>
+                                            <Span Text="{Binding Name}"
+                                                  TextColor="{StaticResource TextPrimary}"
+                                                  FontSize="13"
+                                                  FontAttributes="Bold"/>
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+
+                                <!-- Favorite button -->
+                                <Button Grid.Column="1"
+                                        Text="{Binding FavoriteIcon}"
+                                        Command="{Binding ToggleFavoriteCommand}"
+                                        FontSize="16"
+                                        Padding="0"
+                                        BackgroundColor="Transparent"
+                                        BorderWidth="0"
+                                        WidthRequest="36"
+                                        HeightRequest="36">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button"
+                                                     Binding="{Binding IsWanted}"
+                                                     Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource WantedColor}"/>
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Button"
+                                                     Binding="{Binding IsWanted}"
+                                                     Value="False">
+                                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}"/>
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                </Button>
+
+                                <!-- Excluded button -->
+                                <Button Grid.Column="2"
+                                        Text="⊘"
+                                        Command="{Binding ToggleExcludedCommand}"
+                                        FontSize="16"
+                                        Padding="0"
+                                        BackgroundColor="Transparent"
+                                        BorderWidth="0"
+                                        WidthRequest="36"
+                                        HeightRequest="36">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button"
+                                                     Binding="{Binding IsExcluded}"
+                                                     Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource DangerColor}"/>
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Button"
+                                                     Binding="{Binding IsExcluded}"
+                                                     Value="False">
+                                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}"/>
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </Grid>
+
+                            <!-- Row 1: Rarity -->
+                            <Label Grid.Row="1"
+                                   Text="{Binding Rarity}"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   FontSize="11"
+                                   IsVisible="{Binding HasRarity}"/>
+
+                            <!-- Row 2: Prices (cliquables — ouvrent la fiche Cardmarket/TCGPlayer) -->
+                            <Grid Grid.Row="2" ColumnDefinitions="*,*">
+                                <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                                    <HorizontalStackLayout.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding OpenCmLinkCommand}"/>
+                                    </HorizontalStackLayout.GestureRecognizers>
+                                    <Image Source="cardmarket.png"
+                                           WidthRequest="14"
+                                           HeightRequest="14"
+                                           VerticalOptions="Center"/>
+                                    <Label Text="{Binding CmText}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="11"
+                                           VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                    <HorizontalStackLayout.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding OpenTcgLinkCommand}"/>
+                                    </HorizontalStackLayout.GestureRecognizers>
+                                    <Image Source="tcgplayer.png"
+                                           WidthRequest="14"
+                                           HeightRequest="14"
+                                           VerticalOptions="Center"/>
+                                    <Label Text="{Binding TcgText}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="11"
+                                           VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                            </Grid>
+
+                            <!-- Row 3: Quantity controls -->
+                            <Grid Grid.Row="3"
+                                  ColumnDefinitions="36,36,36,*"
+                                  ColumnSpacing="4">
+                                <Button Grid.Column="0"
+                                        Text="−"
+                                        Command="{Binding DecrementCommand}"
+                                        FontSize="18"
+                                        Padding="0"
+                                        WidthRequest="36"
+                                        HeightRequest="36"
+                                        BackgroundColor="{StaticResource AccentColor}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        CornerRadius="6"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding Quantity}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalOptions="Center"/>
+                                <Button Grid.Column="2"
+                                        Text="+"
+                                        Command="{Binding IncrementCommand}"
+                                        FontSize="18"
+                                        Padding="0"
+                                        WidthRequest="36"
+                                        HeightRequest="36"
+                                        BackgroundColor="{StaticResource AccentColor}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        CornerRadius="6"/>
+
+                                <!-- Tag pill — tap pour choisir/retirer un tag (action sheet) -->
+                                <Border Grid.Column="3"
+                                        BackgroundColor="{StaticResource AccentColor}"
+                                        StrokeThickness="0"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Center"
+                                        Padding="8,4">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10"/>
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnTagPillTapped"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="5">
+                                        <Border BackgroundColor="{Binding TagDotColor}"
+                                                WidthRequest="10" HeightRequest="10"
+                                                StrokeThickness="0"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="3"/>
+                                            </Border.StrokeShape>
+                                        </Border>
+                                        <Label Text="{Binding TagLabel}"
+                                               TextColor="{StaticResource TextSecondary}"
+                                               FontSize="10"
+                                               VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </Grid>
+
+                        </Grid>
+                    </Grid>
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.EmptyView>
+                <Label Text="No cards found"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       FontSize="14"
+                       Margin="32"
+                       IsVisible="{Binding HasNoCards}"/>
+            </CollectionView.EmptyView>
+
+        </CollectionView>
+
+        <!-- Binder view : grille d'images seules, comme le desktop -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding FilteredCards}"
+                        IsVisible="{Binding IsBinderView}"
+                        BackgroundColor="{StaticResource PageBackground}">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="3" HorizontalItemSpacing="4" VerticalItemSpacing="4"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:CardItem">
+                    <!-- Tap court = possède/ne possède plus (comme le desktop) ; appui long = vue HD -->
+                    <Border Margin="2" Padding="2" StrokeThickness="2" Stroke="Transparent" Opacity="{Binding ExcludedOpacity}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="6"/>
+                        </Border.StrokeShape>
+                        <Border.Behaviors>
+                            <toolkit:TouchBehavior Command="{Binding ToggleOwnedCommand}"
+                                                    LongPressCommand="{Binding OpenHdCommand}"
+                                                    LongPressDuration="500"/>
+                        </Border.Behaviors>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsOwned}" Value="True">
+                                <Setter Property="Stroke" Value="{StaticResource HighlightColor}"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsWanted}" Value="True">
+                                <Setter Property="Stroke" Value="{StaticResource WantedColor}"/>
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit"/>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Loading overlay -->
+        <Grid Grid.Row="2"
+              BackgroundColor="{StaticResource PageBackground}"
+              IsVisible="{Binding IsBusy}">
+            <VerticalStackLayout VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="14">
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   Color="{StaticResource HighlightColor}"
+                                   WidthRequest="48"
+                                   HeightRequest="48"/>
+                <Label Text="{Binding LoadingText}"
+                       TextColor="{StaticResource TextSecondary}"
+                       FontSize="13"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+
+    </Grid>
+
+</ContentPage>

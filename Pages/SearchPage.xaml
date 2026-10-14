@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             x:Class="CardexMobile.Pages.SearchPage"
+             x:DataType="vm:SearchPageViewModel"
+             Title="Search"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Shell.TitleView>
+        <Image Source="appname.png"
+               HeightRequest="28"
+               Aspect="AspectFit"
+               HorizontalOptions="Center"/>
+    </Shell.TitleView>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <SearchBar Grid.Row="0"
+                   Text="{Binding SearchText}"
+                   Placeholder="Search for a card by name or number…"
+                   PlaceholderColor="{StaticResource TextSecondary}"
+                   TextColor="{StaticResource TextPrimary}"
+                   BackgroundColor="{StaticResource PanelBackground}"
+                   CancelButtonColor="{StaticResource TextSecondary}"/>
+
+        <CollectionView x:Name="ResultsView"
+                        Grid.Row="1"
+                        ItemsSource="{Binding Results}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnResultSelectionChanged"
+                        BackgroundColor="{StaticResource PageBackground}">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:CardListItem">
+                    <Grid ColumnDefinitions="56,*,Auto"
+                          Padding="12,8"
+                          ColumnSpacing="12"
+                          BackgroundColor="{StaticResource PanelBackground}"
+                          Margin="0,0,0,1">
+
+                        <Image Grid.Column="0"
+                               Source="{Binding ImageUrl}"
+                               Aspect="AspectFit"/>
+
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Label Text="{Binding Name}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"/>
+                            <Label TextColor="{StaticResource TextSecondary}" FontSize="11">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding SetName}"/>
+                                        <Span Text=" · #"/>
+                                        <Span Text="{Binding Number}"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                        </VerticalStackLayout>
+
+                        <Label Grid.Column="2"
+                               Text="{Binding OwnedQuantity}"
+                               TextColor="{StaticResource HighlightColor}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding HasOwned}"/>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.EmptyView>
+                <Label Text="No cards found"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       FontSize="14"
+                       Margin="32"
+                       IsVisible="{Binding HasNoResults}"/>
+            </CollectionView.EmptyView>
+
+        </CollectionView>
+
+        <ActivityIndicator Grid.Row="1"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="{StaticResource HighlightColor}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center"/>
+
+    </Grid>
+
+</ContentPage>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CardexMobile.Pages.CardZoomPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="Black">
+
+    <Grid>
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnBackgroundTapped"/>
+        </Grid.GestureRecognizers>
+
+        <VerticalStackLayout VerticalOptions="Center" Spacing="12">
+            <Image x:Name="ZoomImage" Aspect="AspectFit" MaximumHeightRequest="600"/>
+            <Label x:Name="CardNameLabel"
+                   TextColor="White"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+            <Label x:Name="CardDetailsLabel"
+                   TextColor="#aaaacc"
+                   FontSize="13"
+                   HorizontalOptions="Center"/>
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

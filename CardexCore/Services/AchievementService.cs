@@ -1,0 +1,76 @@
+using Cardex.Data;
+using Cardex.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace Cardex.Services;
+
+public record AchievementDef(string Id, string Emoji, string Name, string Description, bool IsSecret = false, string? Icon = null);
+
+// Port mobile de Services/AchievementService.cs desktop — même principe volontairement simple :
+// liste statique de définitions + primitive d'unlock idempotente (pas de logique de condition
+// ici, elle vit au niveau des sites d'appel qui connaissent le contexte métier). Les succès liés à
+// des fonctionnalités desktop-only (Deck Builder, Backup, Konami code) ne sont pas repris.
+// Icon/Emoji/Name/Description/IsSecret copiés tels quels depuis le desktop pour les 35 entrées
+// portées, y compris le mapping Icon qui ne correspond pas toujours à l'Id (ex. unova_enthusiast
+// utilise gen5_set.png) — vérifié directement contre Cardwatcher/Services/AchievementService.cs,
+// pas deviné.
+public static class AchievementService
+{
+    public static event Action<AchievementDef>? Unlocked;
+
+    public static readonly IReadOnlyList<AchievementDef> All =
+    [
+        // Complétion de sets
+        new("first_set", "✅", "Complete!", "Complete your first set", Icon: "first_set.png"),
+        new("triple_threat", "🎯", "Triple Threat", "Complete 3 sets", Icon: "triple_threat.png"),
+        new("mcdonalds", "🍟", "I'm lovin' it!", "Complete a McDonald's set", IsSecret: true, Icon: "mcdonalds.png"),
+        new("pop5", "😏", "Yeah, sure buddy", "Complete the POP Series 5 set", IsSecret: true, Icon: "pop5.png"),
+        new("genwunner", "🕹️", "Genwunner", "Complete a set from the Base or Gym era", Icon: "genwunner.png"),
+        new("golden_gen", "✨", "The golden gen", "Complete a set from the Neo or E-Card era", Icon: "golden_gen.png"),
+        new("too_much_water", "🌊", "Too much water", "Complete a set from the EX era", Icon: "too_much_water.png"),
+        new("gen4_win", "💎", "Gen 4... the win!", "Complete a set from the Diamond & Pearl, Platinum or HeartGold & SoulSilver era", Icon: "gen4_win.png"),
+        new("unova_enthusiast", "🌗", "Unova enthusiast", "Complete one set from the Black & White block", Icon: "gen5_set.png"),
+        new("all_3d_now", "🧊", "It's all 3D now", "Complete one set from the XY block", Icon: "gen6_set.png"),
+        new("tropical_trip", "🏝️", "Tropical Trip", "Complete one set from the Sun & Moon block", Icon: "gen7_set.png"),
+        new("collector_bruv", "🛡️", "You're a collector bruv?", "Complete one set from the Sword & Shield block", Icon: "gen8_set.png"),
+        new("sandwich_bikes", "🥪", "Sandwich-powered bikes", "Complete one set from the Scarlet & Violet block", Icon: "gen9_set.png"),
+        new("big_set", "📖", "Thank you Pokémon Company", "Complete a set with more than 250 cards", IsSecret: true, Icon: "big_set.png"),
+
+        // Possession / quantités
+        new("duplicate_5", "🔄", "I need some backup!", "Have 5+ copies of a single card", Icon: "duplicate_5.png"),
+        new("duplicate_20", "😱", "Alright, that's enough now", "Have 20+ copies of a single card", IsSecret: true, Icon: "duplicate_20.png"),
+        new("collector_1000", "📦", "I'm something of a collector myself", "Own 1000 cards", Icon: "collector_1000.png"),
+        new("hoarder_2500", "📚", "That's at least... more than 5 binders!", "Own 2500 cards", Icon: "hoarder_2500.png"),
+        new("rare_holo_star_5", "⭐", "Now that's some big money", "Own 5 different Rare Holo Star cards", IsSecret: true, Icon: "rare_holo_star_5.png"),
+        new("darmanitan_5", "🔥", "You have great tastes", "Own 5 different Darmanitan cards", IsSecret: true, Icon: "darmanitan_5.png"),
+        new("garchomp_8", "🐉", "Look, he's ZOOMIN'", "Own 8 different Garchomp cards", IsSecret: true, Icon: "garchomp_8.png"),
+        new("wimpod_6", "🦀", "It's a Tactical Retreat, okay?", "Own 6 different Wimpod and Golisopod cards", IsSecret: true, Icon: "wimpod_6.png"),
+
+        // "Un de chaque" équipes
+        new("regis", "🤖", "ÜN ÜN ÜN *angry computer noises*", "Own at least one of each Regi", IsSecret: true, Icon: "regis.png"),
+        new("cynthia_wannabe", "👑", "*ominous piano theme*", "Own at least one card of each Pokémon from Cynthia's team", IsSecret: true, Icon: "cynthia_wannabe.png"),
+        new("blue_team", "🔵", "Not easy being Blue...", "Own at least one card of each Pokémon from Blue's possible teams", IsSecret: true, Icon: "gen1_champion.png"),
+        new("red_team", "🔴", "Seeing Red", "Own at least one card of each Pokémon from Red's team", IsSecret: true, Icon: "gen2_champion.png"),
+        new("steven_team", "✉️", "A letter, for you !", "Own at least one card of each Pokémon from Steven's team", IsSecret: true, Icon: "gen3_champion.png"),
+        new("n_team", "🎵", "N of the journey", "Own at least one card of each Pokémon from N's team", IsSecret: true, Icon: "gen5_champion.png"),
+        new("diantha_team", "💅", "She's so fabulous", "Own at least one card of each Pokémon from Diantha's team", IsSecret: true, Icon: "gen6_champion.png"),
+        new("kukui_team", "🥊", "Professor Royal", "Own at least one card of each Pokémon from Kukui's possible teams", IsSecret: true, Icon: "gen7_champion.png"),
+        new("leon_team", "🦎", "Charizard fanboy", "Own at least one card of each Pokémon from Leon's possible teams", IsSecret: true, Icon: "gen8_champion.png"),
+        new("geeta_team", "❓", "Who are you again ???", "Own at least one card of each Pokémon from Geeta's team", IsSecret: true, Icon: "gen9_champion.png"),
+
+        // Tags / Wanted / Excluded
+        new("first_tag", "🏷️", "Organized", "Create your first tag", Icon: "first_tag.png"),
+        new("wanted_10", "🎄", "Christmas list", "Tag 10 cards as Wants", Icon: "wanted_10.png"),
+        new("excluded_10", "🚫", "Don't worry, these don't count", "Tag 10 cards as Excluded", Icon: "excluded_10.png"),
+    ];
+
+    public static async Task CheckAsync(string id, AppDbContext db)
+    {
+        if (await db.UnlockedAchievements.AnyAsync(a => a.Id == id)) return;
+        var def = All.FirstOrDefault(a => a.Id == id);
+        if (def is null) return;
+        db.UnlockedAchievements.Add(new UnlockedAchievement { Id = id, UnlockedAt = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+        Unlocked?.Invoke(def);
+    }
+}

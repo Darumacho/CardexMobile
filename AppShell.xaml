@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell x:Class="CardexMobile.AppShell"
+       xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:pages="clr-namespace:CardexMobile.Pages"
+       Title="Cardex"
+       BackgroundColor="{StaticResource AccentColor}"
+       FlyoutBehavior="Flyout"
+       FlyoutBackgroundColor="{StaticResource PanelBackground}"
+       Shell.TabBarBackgroundColor="{StaticResource AccentColor}"
+       Shell.TabBarForegroundColor="{StaticResource TextPrimary}"
+       Shell.TabBarTitleColor="{StaticResource TextPrimary}"
+       Shell.TabBarUnselectedColor="{StaticResource TextSecondary}">
+
+    <!-- Style des entrées du burger menu : icône + texte blanc gras (par défaut le texte du
+         flyout hérite d'une couleur sombre peu lisible sur PanelBackground). -->
+    <Shell.ItemTemplate>
+        <DataTemplate>
+            <Grid ColumnDefinitions="32,*" ColumnSpacing="16" Padding="20,16">
+                <Image Grid.Column="0"
+                       Source="{Binding FlyoutIcon}"
+                       WidthRequest="26"
+                       HeightRequest="26"
+                       Aspect="AspectFit"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1"
+                       Text="{Binding Title}"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       FontSize="16"
+                       VerticalOptions="Center"/>
+            </Grid>
+        </DataTemplate>
+    </Shell.ItemTemplate>
+
+    <!-- Section principale (onglets du bas) : Sets / Search / Collection -->
+    <FlyoutItem Title="Cardex" FlyoutIcon="cardex_logo.png" Route="MainFlyoutItem">
+        <Tab Title="Sets" Icon="set_icon.png">
+            <ShellContent ContentTemplate="{DataTemplate pages:SetsPage}" Route="SetsPage"/>
+        </Tab>
+        <Tab Title="Search" Icon="search_icon.png">
+            <ShellContent ContentTemplate="{DataTemplate pages:SearchPage}" Route="SearchPage"/>
+        </Tab>
+        <Tab Title="Collection" Icon="collection_icon.png">
+            <ShellContent ContentTemplate="{DataTemplate pages:CollectionPage}" Route="CollectionPage"/>
+        </Tab>
+    </FlyoutItem>
+
+    <!-- Sections à venir, accessibles seulement via le burger menu -->
+    <FlyoutItem Title="Settings" FlyoutIcon="settings_icon.png" Route="SettingsFlyoutItem">
+        <ShellContent ContentTemplate="{DataTemplate pages:SettingsPage}" Route="SettingsPage"/>
+    </FlyoutItem>
+
+    <FlyoutItem Title="Achievements" FlyoutIcon="trophy_icon.png" Route="AchievementsFlyoutItem">
+        <ShellContent ContentTemplate="{DataTemplate pages:AchievementsPage}" Route="AchievementsPage"/>
+    </FlyoutItem>
+
+    <FlyoutItem Title="Tags" FlyoutIcon="tag_icon.png" Route="TagsFlyoutItem">
+        <ShellContent ContentTemplate="{DataTemplate pages:TagsPage}" Route="TagsPage"/>
+    </FlyoutItem>
+
+    <!-- Action directe (pas de navigation) : même style icône+texte que les FlyoutItem ci-dessus,
+         mais via Shell.MenuItemTemplate puisque MenuItem n'expose pas FlyoutIcon/Title. -->
+    <Shell.MenuItemTemplate>
+        <DataTemplate>
+            <Grid ColumnDefinitions="32,*" ColumnSpacing="16" Padding="20,16">
+                <Label Grid.Column="0" Text="🔄" FontSize="20"
+                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                <Label Grid.Column="1" Text="{Binding Text}" TextColor="White"
+                       FontAttributes="Bold" FontSize="16" VerticalOptions="Center"/>
+            </Grid>
+        </DataTemplate>
+    </Shell.MenuItemTemplate>
+
+    <MenuItem Text="Sync collection" Clicked="OnSyncMenuItemClicked"/>
+
+</Shell>

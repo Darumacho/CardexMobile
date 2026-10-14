@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             x:Class="CardexMobile.Pages.TagsPage"
+             x:DataType="vm:TagsPageViewModel"
+             Title="Tags"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <!-- Grid à 3 colonnes (icône / texte / repère vide de même largeur) pour que le TEXTE soit
+         visuellement centré dans la barre de titre, pas le bloc icône+texte dans son ensemble. -->
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="32,Auto,32" HorizontalOptions="Center">
+            <Image Grid.Column="0" Source="tag_icon.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFit" HorizontalOptions="Start" VerticalOptions="Center"/>
+            <Label Grid.Column="1" Text="Tags" TextColor="White" FontAttributes="Bold" FontSize="18" Margin="10,0" VerticalOptions="Center"/>
+        </Grid>
+    </Shell.TitleView>
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+        <ScrollView>
+            <VerticalStackLayout Padding="0,8,0,24">
+
+                <!-- New tag -->
+                <Label Text="NEW TAG"
+                       TextColor="White"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       CharacterSpacing="1"
+                       Padding="16,10,16,8"/>
+
+                <Grid ColumnDefinitions="28,*,Auto"
+                      ColumnSpacing="10"
+                      Padding="16,0"
+                      Margin="0,0,0,16">
+                    <Border Grid.Column="0"
+                            BackgroundColor="{Binding PendingSwatchColor}"
+                            WidthRequest="24" HeightRequest="24"
+                            StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="5"/>
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPendingColorTapped"/>
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Entry Grid.Column="1"
+                           Text="{Binding NewTagName}"
+                           Placeholder="Tag name"
+                           PlaceholderColor="{StaticResource TextSecondary}"
+                           TextColor="{StaticResource TextPrimary}"/>
+                    <Button Grid.Column="2"
+                            Text="Add"
+                            Command="{Binding AddTagCommand}"
+                            BackgroundColor="{StaticResource PanelBackground}"
+                            TextColor="{StaticResource TextPrimary}"
+                            FontSize="13"/>
+                </Grid>
+
+                <!-- Existing tags -->
+                <Label Text="MY TAGS"
+                       TextColor="White"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       CharacterSpacing="1"
+                       Padding="16,0,16,8"
+                       IsVisible="{Binding HasTags}"/>
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Tags}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TagItem">
+                            <Grid ColumnDefinitions="24,*,Auto,Auto"
+                                  ColumnSpacing="10"
+                                  Padding="16,8"
+                                  BackgroundColor="{StaticResource PanelBackground}"
+                                  Margin="0,0,0,1">
+                                <Border Grid.Column="0"
+                                        BackgroundColor="{Binding SwatchColor}"
+                                        WidthRequest="20" HeightRequest="20"
+                                        StrokeThickness="0"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="4"/>
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnTagSwatchTapped"/>
+                                    </Border.GestureRecognizers>
+                                </Border>
+                                <Entry Grid.Column="1"
+                                       Text="{Binding Name}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="13"/>
+                                <Button Grid.Column="2"
+                                        Text="✓"
+                                        Clicked="OnSaveTagClicked"
+                                        BackgroundColor="Transparent"
+                                        TextColor="#27ae60"
+                                        FontSize="16"
+                                        Padding="6,0"/>
+                                <Button Grid.Column="3"
+                                        Text="✕"
+                                        Clicked="OnDeleteTagClicked"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource TextSecondary}"
+                                        FontSize="14"
+                                        Padding="6,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <Label Text="No tags yet — add one above to start organizing your cards."
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       FontSize="13"
+                       Margin="32,8"
+                       IsVisible="{Binding HasNoTags}"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>
