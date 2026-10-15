@@ -293,7 +293,7 @@
             </CollectionView.ItemTemplate>
 
             <CollectionView.EmptyView>
-                <Label Text="No cards found"
+                <Label Text="{Binding EmptyStateText}"
                        TextColor="{StaticResource TextSecondary}"
                        HorizontalOptions="Center"
                        VerticalOptions="Center"

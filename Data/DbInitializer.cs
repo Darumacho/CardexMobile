@@ -1,4 +1,3 @@
-using Cardex.Services;
 using CardexMobile.Services;
 using CommunityToolkit.Maui.Alerts;
 using Microsoft.EntityFrameworkCore;
@@ -28,9 +27,6 @@ public class DbInitializer
         MigrateSchema(db);
         await TcgdexSeeder.SeedIfNeededAsync(db);
 
-        var settings = scope.ServiceProvider.GetRequiredService<AppSettings>();
-        await AutoPullSyncIfNeededAsync(db, settings);
-
         await CheckForUpdateAsync(scope.ServiceProvider.GetRequiredService<MobileUpdateService>());
     }
 
@@ -46,37 +42,9 @@ public class DbInitializer
             _ = Toast.Make($"📦 Update {info.Version} available — install it from Settings.").Show());
     }
 
-    // Rapatriement automatique au démarrage : si la dernière synchro connue côté serveur vient du
-    // DESKTOP et est plus récente que notre dernier sync connu, on l'applique directement sans
-    // demander — comportement demandé ("si on détecte que la dernière synchro vient de l'autre, on
-    // récupère automatiquement"). Fait partie de ReadyTask : les pages interrogent la DB à chaque
-    // affichage après avoir attendu ReadyTask, donc pas besoin de rafraîchir leur UI à la main ici.
-    // Best-effort : une erreur réseau ne doit jamais empêcher le reste de l'app de démarrer
-    // (timeout HTTP court dans CollectionSyncService pour ne pas allonger ReadyTask indéfiniment).
-    private static async Task AutoPullSyncIfNeededAsync(MobileAppDbContext db, AppSettings settings)
-    {
-        var apiKey = settings.CollectionSyncApiKey?.Trim();
-        if (string.IsNullOrWhiteSpace(apiKey)) return;
-
-        try
-        {
-            var syncService = new CollectionSyncService(db, apiKey);
-            var remote = await syncService.FetchRemoteStateAsync();
-            if (remote is null || remote.Origin == "mobile") return;
-
-            var remoteUpdatedAt = DateTime.Parse(remote.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind);
-            if (settings.LastCollectionSyncAt is { } lastKnown && remoteUpdatedAt <= lastKnown) return;
-
-            if (CollectionSyncService.IsEffectivelyEmpty(remote.CollectionJson) && await syncService.LocalHasAnyDataAsync())
-                return; // ne jamais écraser silencieusement une collection locale par du vide
-
-            await syncService.ApplyCollectionJsonAsync(remote.CollectionJson);
-            settings.LastCollectionSyncAt = remoteUpdatedAt;
-            settings.LastCollectionSyncOrigin = remote.Origin;
-            settings.Save();
-        }
-        catch { /* best-effort, ne doit jamais bloquer le démarrage */ }
-    }
+    // La détection d'une synchro en attente (et sa confirmation par l'utilisateur) vit désormais
+    // dans SetsPage.xaml.cs — ça nécessite Shell.Current (page affichée), indisponible ici qui
+    // tourne en tâche de fond avant même que l'UI soit construite. Voir incident 2026-10-15.
 
     // EnsureCreated() ne crée le schéma qu'une seule fois et ne le fait jamais évoluer ensuite —
     // toute base déjà présente sur l'appareil (install précédente) doit recevoir ces colonnes à la

@@ -127,6 +127,12 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     public bool HasNoCards => !IsBusy && FilteredCards.Count == 0;
     partial void OnIsBusyChanged(bool value) => OnPropertyChanged(nameof(HasNoCards));
 
+    // Message affiché à la place de "No cards found" si le premier chargement (fetch live
+    // pokemontcg.io, pour un set jamais mis en cache) a échoué — voir le catch dans LoadAsync.
+    [ObservableProperty] private string? _errorMessage;
+    public string EmptyStateText => ErrorMessage ?? "No cards found";
+    partial void OnErrorMessageChanged(string? value) => OnPropertyChanged(nameof(EmptyStateText));
+
     // Logo du set affiché dans la barre de titre à la place du nom quand disponible.
     public bool HasLogo => !string.IsNullOrEmpty(LogoUrl);
     public bool NoLogo  => !HasLogo;
@@ -180,6 +186,7 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
         if (string.IsNullOrEmpty(SetId) || IsBusy) return;
         IsBusy = true;
         LoadingText = "Loading…";
+        ErrorMessage = null;
         try
         {
             await _dbInit.ReadyTask;
@@ -254,6 +261,15 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
             RefreshCompletion();
             OnPropertyChanged(nameof(FilteredCards));
             OnPropertyChanged(nameof(HasNoCards));
+        }
+        catch (Exception ex)
+        {
+            // Sans ce catch, une erreur réseau/API lors du tout premier chargement d'un set (fetch
+            // live pokemontcg.io, pas encore en cache) remontait telle quelle jusqu'à OnAppearing
+            // (async void) et plantait toute l'app — desktop catch déjà ce genre d'erreur à tous
+            // ses points d'appel équivalents (MainViewModel), ce point-ci ne le faisait pas.
+            System.Diagnostics.Debug.WriteLine($"SetDetailPageViewModel.LoadAsync failed: {ex}");
+            ErrorMessage = "Couldn't load this set. Check your connection and try again.";
         }
         finally { IsBusy = false; }
     }

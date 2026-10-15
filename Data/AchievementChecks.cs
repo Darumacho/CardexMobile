@@ -104,10 +104,21 @@ public static class AchievementChecks
         return await db.CachedCards.CountAsync(c => ownedIds.Contains(c.CardId) && EF.Functions.Like(c.Name, $"%{nameContains}%"));
     }
 
+    // `names.Any(n => EF.Functions.Like(...))` à l'intérieur d'une requête EF n'est PAS traduisible
+    // en SQL (contrairement à un OR explicite comme dans OwnsAtLeastOneOfEachAsync juste en
+    // dessous) — plantait avec un InvalidOperationException à chaque changement de quantité, le
+    // check tournant après chaque save (voir CheckOwnershipAsync). Une requête LIKE par nom,
+    // chacune traduisible seule, puis union côté client — même pattern que les méthodes voisines.
     private static async Task<int> CountDistinctOwnedByAnyNameAsync(MobileAppDbContext db, params string[] names)
     {
-        var ownedIds = await db.OwnedCards.Where(o => o.Quantity > 0).Select(o => o.CardId).ToListAsync();
-        return await db.CachedCards.CountAsync(c => ownedIds.Contains(c.CardId) && names.Any(n => EF.Functions.Like(c.Name, $"%{n}%")));
+        var ownedIds = (await db.OwnedCards.Where(o => o.Quantity > 0).Select(o => o.CardId).ToListAsync()).ToHashSet();
+        var matchingCardIds = new HashSet<string>();
+        foreach (var name in names)
+        {
+            var ids = await db.CachedCards.Where(c => EF.Functions.Like(c.Name, $"%{name}%")).Select(c => c.CardId).ToListAsync();
+            matchingCardIds.UnionWith(ids);
+        }
+        return matchingCardIds.Count(ownedIds.Contains);
     }
 
     private static async Task<bool> OwnsAtLeastOneOfEachAsync(MobileAppDbContext db, string[] names)

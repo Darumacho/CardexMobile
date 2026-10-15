@@ -155,4 +155,39 @@ public partial class SettingsPageViewModel : ObservableObject
             IsSyncing = false;
         }
     }
+
+    private static string SyncBackupsFolder => Path.Combine(FileSystem.AppDataDirectory, "SyncBackups");
+
+    // Filet de sécurité demandé après l'incident du 2026-10-15 : permet d'annuler un import de
+    // sync malvenu en restaurant le backup local pris juste avant (voir
+    // BackupLocalCollectionBeforeSyncAsync dans SetsPage.xaml.cs, qui écrit dans ce même dossier).
+    // N'a pas besoin de clé API ni de réseau — lit uniquement un fichier local déjà présent.
+    [RelayCommand]
+    private async Task RestoreLastSyncBackupAsync()
+    {
+        var latest = Directory.Exists(SyncBackupsFolder)
+            ? new DirectoryInfo(SyncBackupsFolder).GetFiles("pre_sync_*.json").OrderByDescending(f => f.LastWriteTime).FirstOrDefault()
+            : null;
+        if (latest is null)
+        {
+            await Shell.Current.DisplayAlert("Restore backup", "No sync backup found.", "OK");
+            return;
+        }
+
+        var json = await File.ReadAllTextAsync(latest.FullName);
+        var ownedCount = CollectionSyncService.CountOwnedCards(json);
+
+        var confirmed = await Shell.Current.DisplayAlert(
+            "Restore backup",
+            $"Restore the backup from {latest.LastWriteTime:dd/MM/yyyy HH:mm} ({ownedCount} owned card(s))?\n\n" +
+            "This will replace your current collection, wants, tags and achievements.",
+            "Restore", "Cancel");
+        if (!confirmed) return;
+
+        await _dbInit.ReadyTask;
+        var syncService = new CollectionSyncService(_db, string.Empty);
+        await syncService.ApplyCollectionJsonAsync(json);
+
+        _ = Toast.Make($"Collection restored from backup ({latest.LastWriteTime:dd/MM/yyyy HH:mm}).").Show();
+    }
 }

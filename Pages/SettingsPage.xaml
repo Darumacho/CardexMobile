@@ -131,6 +131,13 @@
                     HorizontalOptions="Start"
                     Margin="16,0,16,6"/>
 
+            <Button Text="♻  Restore last backup"
+                    Command="{Binding RestoreLastSyncBackupCommand}"
+                    BackgroundColor="{StaticResource PanelBackground}"
+                    TextColor="{StaticResource TextPrimary}"
+                    HorizontalOptions="Start"
+                    Margin="16,0,16,6"/>
+
             <Label Text="{Binding LastSyncStatusText}"
                    TextColor="{StaticResource TextSecondary}"
                    FontSize="12"
