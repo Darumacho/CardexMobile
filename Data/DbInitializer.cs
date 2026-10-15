@@ -1,4 +1,6 @@
 using Cardex.Services;
+using CardexMobile.Services;
+using CommunityToolkit.Maui.Alerts;
 using Microsoft.EntityFrameworkCore;
 
 namespace CardexMobile.Data;
@@ -28,6 +30,20 @@ public class DbInitializer
 
         var settings = scope.ServiceProvider.GetRequiredService<AppSettings>();
         await AutoPullSyncIfNeededAsync(db, settings);
+
+        await CheckForUpdateAsync(scope.ServiceProvider.GetRequiredService<MobileUpdateService>());
+    }
+
+    // Simple notification au démarrage (pas de bannière globale comme sur desktop — pas de slot
+    // naturel pour ça au-dessus de la navigation Shell). L'installation elle-même se fait depuis
+    // Settings, qui refait son propre check pour afficher le bouton "Install update".
+    private static async Task CheckForUpdateAsync(MobileUpdateService updateService)
+    {
+        var info = await updateService.CheckAsync();
+        if (info is null) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+            _ = Toast.Make($"📦 Update {info.Version} available — install it from Settings.").Show());
     }
 
     // Rapatriement automatique au démarrage : si la dernière synchro connue côté serveur vient du
@@ -50,6 +66,9 @@ public class DbInitializer
 
             var remoteUpdatedAt = DateTime.Parse(remote.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind);
             if (settings.LastCollectionSyncAt is { } lastKnown && remoteUpdatedAt <= lastKnown) return;
+
+            if (CollectionSyncService.IsEffectivelyEmpty(remote.CollectionJson) && await syncService.LocalHasAnyDataAsync())
+                return; // ne jamais écraser silencieusement une collection locale par du vide
 
             await syncService.ApplyCollectionJsonAsync(remote.CollectionJson);
             settings.LastCollectionSyncAt = remoteUpdatedAt;

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Cardex.Services;
 using CardexMobile.Data;
+using CardexMobile.Services;
 using CommunityToolkit.Maui.Alerts;
 
 namespace CardexMobile.ViewModels;
@@ -14,6 +15,7 @@ public partial class SettingsPageViewModel : ObservableObject
     private readonly AppSettings _settings;
     private readonly MobileAppDbContext _db;
     private readonly DbInitializer _dbInit;
+    private readonly MobileUpdateService _updateService;
 
     public IReadOnlyList<ColorSwatch> BorderColorSwatches => ColorSwatch.Palette;
 
@@ -21,20 +23,59 @@ public partial class SettingsPageViewModel : ObservableObject
     [ObservableProperty] private string _collectionBorderColor = "#3a7fc1";
     [ObservableProperty] private string _collectionSyncApiKey = "";
     [ObservableProperty] private bool   _isSyncing;
+    [ObservableProperty] private MobileUpdateInfo? _pendingUpdate;
+    [ObservableProperty] private bool   _isUpdating;
+    [ObservableProperty] private int    _updateProgress;
+
+    public bool HasUpdate => PendingUpdate is not null;
+    public double UpdateProgressFraction => UpdateProgress / 100.0;
+    partial void OnPendingUpdateChanged(MobileUpdateInfo? value) => OnPropertyChanged(nameof(HasUpdate));
+    partial void OnUpdateProgressChanged(int value) => OnPropertyChanged(nameof(UpdateProgressFraction));
 
     public string LastSyncStatusText => _settings.LastCollectionSyncAt is { } at
         ? $"Last synced {at.ToLocalTime():dd/MM/yyyy HH:mm} (from {_settings.LastCollectionSyncOrigin})"
         : "Never synced yet";
 
-    public SettingsPageViewModel(AppSettings settings, MobileAppDbContext db, DbInitializer dbInit)
+    public SettingsPageViewModel(AppSettings settings, MobileAppDbContext db, DbInitializer dbInit, MobileUpdateService updateService)
     {
         _settings = settings;
         _db = db;
         _dbInit = dbInit;
+        _updateService = updateService;
         _showMyCollection = settings.ShowMyCollection;
         _collectionBorderColor = settings.CollectionBorderColor;
         _collectionSyncApiKey = settings.CollectionSyncApiKey ?? "";
     }
+
+    public async Task CheckForUpdateAsync()
+    {
+        PendingUpdate = await _updateService.CheckAsync();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanInstallUpdate))]
+    private async Task InstallUpdateAsync()
+    {
+        if (PendingUpdate is null) return;
+        IsUpdating = true;
+        UpdateProgress = 0;
+        try
+        {
+            var progress = new Progress<int>(p => UpdateProgress = p);
+            await _updateService.DownloadAndInstallAsync(PendingUpdate, progress);
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Update failed", ex.Message, "OK");
+        }
+        finally
+        {
+            IsUpdating = false;
+        }
+    }
+
+    private bool CanInstallUpdate() => !IsUpdating;
+
+    partial void OnIsUpdatingChanged(bool value) => InstallUpdateCommand.NotifyCanExecuteChanged();
 
     partial void OnShowMyCollectionChanged(bool value)
     {

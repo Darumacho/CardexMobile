@@ -1,5 +1,6 @@
 using CardexMobile.Data;
 using CardexMobile.Pages;
+using CardexMobile.Services;
 using CardexMobile.ViewModels;
 using Cardex.Services;
 using CommunityToolkit.Maui;
@@ -27,6 +28,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton(settings);
         builder.Services.AddSingleton(_ => new PokemonTcgService(settings.ApiKey));
+        builder.Services.AddSingleton<MobileUpdateService>();
         builder.Services.AddDbContext<MobileAppDbContext>();
 
         builder.Services.AddTransient<SetsPageViewModel>();

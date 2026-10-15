@@ -13,6 +13,12 @@ public partial class SettingsPage : ContentPage
         BindingContext = vm;
     }
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _ = _vm.CheckForUpdateAsync();
+    }
+
     private void OnSwatchTapped(object sender, TappedEventArgs e)
     {
         if (sender is BindableObject { BindingContext: ColorSwatch swatch })

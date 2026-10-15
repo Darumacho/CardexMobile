@@ -19,6 +19,36 @@
     <ScrollView>
         <VerticalStackLayout Padding="0,8,0,24">
 
+            <!-- Bannière mise à jour : visible seulement si une version plus récente existe
+                 (même esprit que la bannière verte en haut de MainWindow côté desktop). -->
+            <Border IsVisible="{Binding HasUpdate}"
+                    BackgroundColor="#1a5c32"
+                    Margin="12,0,12,16"
+                    Padding="14,10">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label TextColor="White" FontSize="13">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="A new version is available: "/>
+                                <Span Text="{Binding PendingUpdate.Version}" FontAttributes="Bold"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <ProgressBar Progress="{Binding UpdateProgressFraction}"
+                                 IsVisible="{Binding IsUpdating}"
+                                 ProgressColor="White"/>
+                    <Button Text="⬇ Install update"
+                            Command="{Binding InstallUpdateCommand}"
+                            BackgroundColor="White"
+                            TextColor="#1a5c32"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Start"/>
+                </VerticalStackLayout>
+            </Border>
+
             <Label Text="DISPLAY"
                    TextColor="White"
                    FontSize="11"
