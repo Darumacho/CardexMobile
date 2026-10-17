@@ -39,7 +39,7 @@
         <!-- Completion header -->
         <Grid Grid.Row="1" BackgroundColor="{StaticResource PanelBackground}">
 
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto"
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto"
                   Padding="16,8">
                 <Button Grid.Column="0"
                         Text="{Binding SetFavoriteIcon}"
@@ -75,11 +75,19 @@
                         WidthRequest="36"
                         HeightRequest="36"
                         Margin="0,0,8,0"/>
-                <ProgressBar Grid.Column="2"
+                <Button Grid.Column="2"
+                        Text="{Binding ToggleAllLabel}"
+                        Command="{Binding ToggleAllOwnedCommand}"
+                        FontSize="11"
+                        Padding="10,5"
+                        BackgroundColor="{StaticResource PageBackground}"
+                        TextColor="{StaticResource TextPrimary}"
+                        Margin="0,0,8,0"/>
+                <ProgressBar Grid.Column="3"
                              Progress="{Binding CompletionRatio}"
                              ProgressColor="{StaticResource HighlightColor}"
                              VerticalOptions="Center"/>
-                <Label Grid.Column="3"
+                <Label Grid.Column="4"
                        Text="{Binding CompletionText}"
                        TextColor="{StaticResource TextPrimary}"
                        FontSize="13"
@@ -98,11 +106,21 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:CardItem">
 
+                    <!-- Détouré coloré (possédée/souhaitée), même règle que CardTemplate desktop :
+                         owned l'emporte sur wanted si les deux sont vrais (triggers dans cet ordre). -->
+                    <Border StrokeThickness="2" Stroke="Transparent" Margin="0,0,0,1">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsWanted}" Value="True">
+                                <Setter Property="Stroke" Value="{StaticResource WantedColor}"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsOwned}" Value="True">
+                                <Setter Property="Stroke" Value="{StaticResource OwnedColor}"/>
+                            </DataTrigger>
+                        </Border.Triggers>
                     <Grid ColumnDefinitions="80,*"
                           ColumnSpacing="10"
                           Padding="10,8"
                           BackgroundColor="{StaticResource PanelBackground}"
-                          Margin="0,0,0,1"
                           Opacity="{Binding ExcludedOpacity}">
 
                         <!-- Card image — tap pour la vue HD -->
@@ -288,6 +306,7 @@
 
                         </Grid>
                     </Grid>
+                    </Border>
 
                 </DataTemplate>
             </CollectionView.ItemTemplate>
@@ -326,7 +345,7 @@
                         </Border.Behaviors>
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding IsOwned}" Value="True">
-                                <Setter Property="Stroke" Value="{StaticResource HighlightColor}"/>
+                                <Setter Property="Stroke" Value="{StaticResource OwnedColor}"/>
                             </DataTrigger>
                             <DataTrigger TargetType="Border" Binding="{Binding IsWanted}" Value="True">
                                 <Setter Property="Stroke" Value="{StaticResource WantedColor}"/>

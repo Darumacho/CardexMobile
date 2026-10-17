@@ -122,6 +122,10 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     public double CompletionRatio  => Total > 0 ? (double)OwnedCount / Total : 0;
     public string SetFavoriteIcon  => IsSetFavorite ? "★" : "☆";
 
+    // Même sémantique que SetViewModel.AllOwned côté desktop.
+    public bool AllOwned => Cards.Count > 0 && Cards.All(c => c.IsOwned);
+    public string ToggleAllLabel => AllOwned ? "Uncheck all" : "Check all";
+
     // N'affiche "No cards found" qu'une fois le chargement terminé — CollectionView.EmptyView
     // s'affiche dès que FilteredCards est vide, y compris pendant le chargement initial sinon.
     public bool HasNoCards => !IsBusy && FilteredCards.Count == 0;
@@ -374,8 +378,47 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
         OwnedCount = nonExcluded.Count(c => c.IsOwned);
         OnPropertyChanged(nameof(CompletionText));
         OnPropertyChanged(nameof(CompletionRatio));
+        OnPropertyChanged(nameof(AllOwned));
+        OnPropertyChanged(nameof(ToggleAllLabel));
 
         if (Total > 0 && OwnedCount == Total)
             _ = AchievementChecks.CheckSetCompletionAsync(_db, SetId, SetName, _setSeries, Total);
+    }
+
+    // Même logique que MainViewModel.ToggleAllOwnedAsync côté desktop : bascule toutes les cartes
+    // du set (sauf celles exclues) d'un coup, une seule écriture DB.
+    [RelayCommand]
+    private async Task ToggleAllOwnedAsync()
+    {
+        if (Cards.Count == 0 || IsBusy) return;
+
+        var targets = Cards.Where(c => !c.IsExcluded).ToList();
+        var targetState = !AllOwned;
+
+        if (targetState)
+        {
+            var existingIds = (await _db.OwnedCards
+                .Where(o => o.SetId == SetId)
+                .Select(o => o.CardId)
+                .ToListAsync()).ToHashSet();
+
+            foreach (var card in targets)
+            {
+                var wasOwned = card.Quantity > 0;
+                if (!wasOwned) card.Quantity = 1;
+                if (!existingIds.Contains(card.CardId))
+                    _db.OwnedCards.Add(new OwnedCard { CardId = card.CardId, SetId = card.SetId, Quantity = card.Quantity });
+            }
+        }
+        else
+        {
+            var toRemove = await _db.OwnedCards.Where(o => o.SetId == SetId).ToListAsync();
+            _db.OwnedCards.RemoveRange(toRemove);
+            foreach (var card in targets)
+                card.Quantity = 0;
+        }
+
+        await _db.SaveChangesAsync();
+        RefreshCompletion();
     }
 }

@@ -9,6 +9,9 @@
     <Color x:Key="PanelBackground">#16213e</Color>
     <Color x:Key="AccentColor">#0f3460</Color>
     <Color x:Key="HighlightColor">#3a7fc1</Color>
+    <!-- Détouré "possédée" — même rouge que BrushHighlight/ColorHighlight côté desktop
+         (App.xaml), distinct de HighlightColor ci-dessus qui est la couleur d'accent générale. -->
+    <Color x:Key="OwnedColor">#e94560</Color>
     <Color x:Key="TextPrimary">#e0e0e0</Color>
     <Color x:Key="TextSecondary">#8888aa</Color>
     <Color x:Key="WantedColor">#ffd700</Color>
