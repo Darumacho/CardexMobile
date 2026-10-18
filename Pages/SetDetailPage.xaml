@@ -39,61 +39,71 @@
         <!-- Completion header -->
         <Grid Grid.Row="1" BackgroundColor="{StaticResource PanelBackground}">
 
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto"
-                  Padding="16,8">
-                <Button Grid.Column="0"
-                        Text="{Binding SetFavoriteIcon}"
-                        Command="{Binding ToggleSetFavoriteCommand}"
-                        FontSize="18"
-                        Padding="0"
-                        BackgroundColor="Transparent"
-                        BorderWidth="0"
-                        WidthRequest="36"
-                        HeightRequest="36"
-                        Margin="0,0,4,0">
-                    <Button.Triggers>
-                        <DataTrigger TargetType="Button"
-                                     Binding="{Binding IsSetFavorite}"
-                                     Value="True">
-                            <Setter Property="TextColor" Value="{StaticResource WantedColor}"/>
-                        </DataTrigger>
-                        <DataTrigger TargetType="Button"
-                                     Binding="{Binding IsSetFavorite}"
-                                     Value="False">
-                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}"/>
-                        </DataTrigger>
-                    </Button.Triggers>
-                </Button>
-                <Button Grid.Column="1"
-                        Text="⊞"
-                        Command="{Binding ToggleViewModeCommand}"
-                        FontSize="18"
-                        Padding="0"
-                        BackgroundColor="Transparent"
-                        BorderWidth="0"
-                        TextColor="{StaticResource TextSecondary}"
-                        WidthRequest="36"
-                        HeightRequest="36"
-                        Margin="0,0,8,0"/>
-                <Button Grid.Column="2"
-                        Text="{Binding ToggleAllLabel}"
-                        Command="{Binding ToggleAllOwnedCommand}"
-                        FontSize="11"
-                        Padding="10,5"
-                        BackgroundColor="{StaticResource PageBackground}"
-                        TextColor="{StaticResource TextPrimary}"
-                        Margin="0,0,8,0"/>
-                <ProgressBar Grid.Column="3"
-                             Progress="{Binding CompletionRatio}"
-                             ProgressColor="{StaticResource HighlightColor}"
-                             VerticalOptions="Center"/>
-                <Label Grid.Column="4"
-                       Text="{Binding CompletionText}"
-                       TextColor="{StaticResource TextPrimary}"
-                       FontSize="13"
-                       FontAttributes="Bold"
-                       VerticalOptions="Center"
-                       Margin="12,0,0,0"/>
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="8" Padding="16,8">
+
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto">
+                    <Button Grid.Column="0"
+                            Text="{Binding SetFavoriteIcon}"
+                            Command="{Binding ToggleSetFavoriteCommand}"
+                            FontSize="18"
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            WidthRequest="36"
+                            HeightRequest="36"
+                            Margin="0,0,4,0">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding IsSetFavorite}"
+                                         Value="True">
+                                <Setter Property="TextColor" Value="{StaticResource WantedColor}"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding IsSetFavorite}"
+                                         Value="False">
+                                <Setter Property="TextColor" Value="{StaticResource TextSecondary}"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                    <Button Grid.Column="1"
+                            Text="⊞"
+                            Command="{Binding ToggleViewModeCommand}"
+                            FontSize="18"
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            TextColor="{StaticResource TextSecondary}"
+                            WidthRequest="36"
+                            HeightRequest="36"
+                            Margin="0,0,8,0"/>
+                    <ProgressBar Grid.Column="2"
+                                 Progress="{Binding CompletionRatio}"
+                                 ProgressColor="{StaticResource HighlightColor}"
+                                 VerticalOptions="Center"/>
+                    <Label Grid.Column="3"
+                           Text="{Binding CompletionText}"
+                           TextColor="{StaticResource TextPrimary}"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"
+                           Margin="12,0,0,0"/>
+                </Grid>
+
+                <HorizontalStackLayout Grid.Row="1" Spacing="8">
+                    <Button Text="{Binding ToggleAllLabel}"
+                            Command="{Binding ToggleAllOwnedCommand}"
+                            FontSize="11"
+                            Padding="10,5"
+                            BackgroundColor="{StaticResource PageBackground}"
+                            TextColor="{StaticResource TextPrimary}"/>
+                    <Button Text="{Binding HideOwnedLabel}"
+                            Command="{Binding ToggleHideOwnedCommand}"
+                            FontSize="11"
+                            Padding="10,5"
+                            BackgroundColor="{StaticResource PageBackground}"
+                            TextColor="{StaticResource TextPrimary}"/>
+                </HorizontalStackLayout>
+
             </Grid>
         </Grid>
 

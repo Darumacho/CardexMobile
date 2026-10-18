@@ -108,6 +108,20 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     [NotifyPropertyChangedFor(nameof(HasNoCards))]
     private string _searchText = "";
 
+    // Masque les cartes possédées de la liste — demandé pour les gros sets où faire défiler
+    // jusqu'aux cartes manquantes devient pénible. Réinitialisé à chaque visite du set, comme
+    // IsBinderView, pas persisté.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilteredCards))]
+    [NotifyPropertyChangedFor(nameof(HasNoCards))]
+    [NotifyPropertyChangedFor(nameof(HideOwnedLabel))]
+    private bool _hideOwned;
+
+    public string HideOwnedLabel => HideOwned ? "Unhide owned" : "Hide owned";
+
+    [RelayCommand]
+    private void ToggleHideOwned() => HideOwned = !HideOwned;
+
     [ObservableProperty] private string _setName    = "";
     [ObservableProperty] private string _setId      = "";
     [ObservableProperty] private bool   _isBusy;
@@ -160,9 +174,12 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(SearchText)) return Cards;
+            IEnumerable<CardItem> cards = Cards;
+            if (HideOwned) cards = cards.Where(c => !c.IsOwned);
+
+            if (string.IsNullOrWhiteSpace(SearchText)) return cards as IReadOnlyList<CardItem> ?? cards.ToList();
             var q = SearchText.Trim();
-            return Cards.Where(c =>
+            return cards.Where(c =>
                 c.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
                 c.Number.Contains(q, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -208,6 +225,12 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
                 .Where(c => c.SetId == SetId)
                 .OrderBy(c => c.SortOrder)
                 .ToListAsync();
+
+            // Sets connus pour une pagination cassée côté pokemontcg.io (ex. Ascended Heroes) —
+            // reconcilié avec le seed de secours avant tout fetch live. Retourne null si ce set
+            // n'est pas concerné (immense majorité des cas), auquel cas rien ne change ici.
+            var reconciled = await CompletionSeeder.ReconcileAsync(_db, SetId, cached);
+            if (reconciled is not null) cached = reconciled;
 
             if (cached.Count == 0)
             {
@@ -380,6 +403,10 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
         OnPropertyChanged(nameof(CompletionRatio));
         OnPropertyChanged(nameof(AllOwned));
         OnPropertyChanged(nameof(ToggleAllLabel));
+        // Si "Hide owned" est actif, une carte qui vient d'être (dés)possédée doit
+        // apparaître/disparaître de la liste, pas juste mettre à jour son état visuel.
+        OnPropertyChanged(nameof(FilteredCards));
+        OnPropertyChanged(nameof(HasNoCards));
 
         if (Total > 0 && OwnedCount == Total)
             _ = AchievementChecks.CheckSetCompletionAsync(_db, SetId, SetName, _setSeries, Total);
