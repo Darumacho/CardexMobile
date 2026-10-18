@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             x:Class="CardexMobile.Pages.LanguageBreakdownPage"
+             x:DataType="vm:LanguageBreakdownPageViewModel"
+             Title="Languages"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16,16,16,24" Spacing="4">
+
+            <Label Text="{Binding CardName}"
+                   TextColor="{StaticResource TextPrimary}"
+                   FontSize="18"
+                   FontAttributes="Bold"/>
+            <Label Text="{Binding CardSubtitle}"
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="13"
+                   Margin="0,0,0,16"/>
+
+            <Label Text="Tick a language and set how many copies you own in it."
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   Margin="0,0,0,10"/>
+
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LanguageRowItem">
+                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="4,10">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleCommand}"/>
+                            </Grid.GestureRecognizers>
+
+                            <Switch Grid.Column="0"
+                                    IsToggled="{Binding Checked, Mode=OneWay}"
+                                    OnColor="{StaticResource HighlightColor}"
+                                    InputTransparent="True"/>
+
+                            <Label Grid.Column="1"
+                                   Text="{Binding Label}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="15"
+                                   VerticalOptions="Center"
+                                   Margin="10,0"/>
+
+                            <HorizontalStackLayout Grid.Column="2" Spacing="6" IsVisible="{Binding Checked}">
+                                <Button Text="−"
+                                        Command="{Binding DecrementCommand}"
+                                        WidthRequest="32" HeightRequest="32"
+                                        FontSize="16" Padding="0"
+                                        BackgroundColor="{StaticResource AccentColor}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        CornerRadius="6"/>
+                                <Label Text="{Binding Quantity}"
+                                       WidthRequest="24"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalOptions="Center"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontAttributes="Bold"
+                                       FontSize="15"/>
+                                <Button Text="+"
+                                        Command="{Binding IncrementCommand}"
+                                        WidthRequest="32" HeightRequest="32"
+                                        FontSize="16" Padding="0"
+                                        BackgroundColor="{StaticResource AccentColor}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        CornerRadius="6"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <BoxView HeightRequest="1" Color="{StaticResource PanelBackground}" Margin="0,12,0,10"/>
+
+            <Label Text="{Binding TotalLabel}"
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="13"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

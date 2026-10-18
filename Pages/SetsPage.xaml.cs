@@ -49,7 +49,7 @@ public partial class SetsPage : ContentPage
         try
         {
             await _dbInit.ReadyTask;
-            var syncService = new CollectionSyncService(_db, apiKey);
+            var syncService = new CollectionSyncService(_db, _settings, apiKey);
             var remote = await syncService.FetchRemoteStateAsync();
             if (remote is null || remote.Origin == "mobile") return;
 

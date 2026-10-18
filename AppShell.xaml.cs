@@ -10,6 +10,7 @@ public partial class AppShell : Shell
         InitializeComponent();
         Routing.RegisterRoute(nameof(SetDetailPage), typeof(SetDetailPage));
         Routing.RegisterRoute(nameof(CardZoomPage), typeof(CardZoomPage));
+        Routing.RegisterRoute(nameof(LanguageBreakdownPage), typeof(LanguageBreakdownPage));
     }
 
     // Action directe depuis le burger menu (pas de navigation vers une page) — réutilise

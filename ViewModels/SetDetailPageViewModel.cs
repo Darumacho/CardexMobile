@@ -27,7 +27,25 @@ public partial class CardItem : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsOwned))]
+    [NotifyPropertyChangedFor(nameof(LanguageSummary))]
     private int _quantity;
+
+    // Détail par langue, utilisé seulement en affichage ici (le select/stepper vit sur
+    // LanguageBreakdownPage) — voir SetDetailPageViewModel.IsMultiLanguageMode.
+    public Dictionary<string, int>? LanguageQuantities { get; set; }
+
+    public string LanguageSummary
+    {
+        get
+        {
+            if (Quantity == 0) return "Not owned";
+            if (LanguageQuantities is null) return $"EN ×{Quantity}";
+            var checkedLangs = LanguageQuantities.Where(kv => kv.Value > 0).ToList();
+            if (checkedLangs.Count <= 3)
+                return string.Join(", ", checkedLangs.Select(kv => $"{kv.Key} ×{kv.Value}"));
+            return $"{checkedLangs.Count} languages · {Quantity} total";
+        }
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FavoriteIcon))]
@@ -41,6 +59,8 @@ public partial class CardItem : ObservableObject
     public bool   HasRarity       => Rarity is not null;
     public string FavoriteIcon    => IsWanted ? "★" : "☆";
     public double ExcludedOpacity => IsExcluded ? 0.45 : 1.0;
+
+    public void NotifyLanguageQuantitiesChanged() => OnPropertyChanged(nameof(LanguageSummary));
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TagLabel))]
@@ -97,7 +117,13 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     private readonly MobileAppDbContext _db;
     private readonly PokemonTcgService  _tcgService;
     private readonly DbInitializer      _dbInit;
+    private readonly AppSettings        _settings;
     private string _setSeries = "";
+
+    // Vrai quand plus d'une langue est suivie (Settings → Languages) : le compteur simple +/- est
+    // remplacé par le bouton de résumé par langue (ouvre LanguageBreakdownPage). Même sémantique
+    // que CardViewModel.IsMultiLanguageMode côté desktop.
+    public bool IsMultiLanguageMode => _settings.TrackedLanguages.Count > 1;
 
     public ObservableCollection<CardItem> Cards { get; } = [];
     public ObservableCollection<TagItem> Tags { get; } = [];
@@ -186,11 +212,12 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
         }
     }
 
-    public SetDetailPageViewModel(MobileAppDbContext db, PokemonTcgService tcgService, DbInitializer dbInit)
+    public SetDetailPageViewModel(MobileAppDbContext db, PokemonTcgService tcgService, DbInitializer dbInit, AppSettings settings)
     {
         _db = db;
         _tcgService = tcgService;
         _dbInit = dbInit;
+        _settings = settings;
     }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
@@ -257,6 +284,7 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
             var wanted   = (await _db.WantedCards  .Where(w => cardIds.Contains(w.CardId)).Select(w => w.CardId).ToListAsync()).ToHashSet();
             var excluded = (await _db.ExcludedCards.Where(e => cardIds.Contains(e.CardId)).Select(e => e.CardId).ToListAsync()).ToHashSet();
             var cardTags = await _db.CardTags.Where(ct => cardIds.Contains(ct.CardId)).ToDictionaryAsync(ct => ct.CardId, ct => ct.TagId);
+            var langMap  = await BuildLanguageMapAsync(cardIds, owned);
 
             Cards.Clear();
             foreach (var c in cached)
@@ -269,6 +297,7 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
                     Quantity   = owned.GetValueOrDefault(c.CardId),
                     IsWanted   = wanted.Contains(c.CardId),
                     IsExcluded = excluded.Contains(c.CardId),
+                    LanguageQuantities = langMap.GetValueOrDefault(c.CardId),
                     // Tag initial posé avant de câbler OnTagChanged ci-dessous, pour ne pas
                     // déclencher d'écriture DB pendant la construction (même piège que desktop).
                     SelectedTag = cardTags.TryGetValue(c.CardId, out var tagId)
@@ -299,6 +328,38 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
             ErrorMessage = "Couldn't load this set. Check your connection and try again.";
         }
         finally { IsBusy = false; }
+    }
+
+    // Construit (à l'ouverture du set) la map CardId -> quantité par langue depuis
+    // OwnedCardLanguages. Si plus d'une langue est suivie, toute carte déjà possédée (owned) mais
+    // sans détail par langue encore enregistré se voit attribuer rétroactivement tout son stock à
+    // l'anglais (même logique que desktop MainViewModel.BuildLanguageMapAsync).
+    private async Task<Dictionary<string, Dictionary<string, int>>> BuildLanguageMapAsync(
+        List<string> cardIds, Dictionary<string, int> owned)
+    {
+        var langMap = new Dictionary<string, Dictionary<string, int>>();
+        if (!IsMultiLanguageMode) return langMap;
+
+        var rows = await _db.OwnedCardLanguages.Where(l => cardIds.Contains(l.CardId)).ToListAsync();
+        foreach (var row in rows)
+        {
+            if (!langMap.TryGetValue(row.CardId, out var dict))
+                langMap[row.CardId] = dict = new();
+            dict[row.Language] = row.Quantity;
+        }
+
+        var toBackfill = owned.Where(kv => kv.Value > 0 && !langMap.ContainsKey(kv.Key)).ToList();
+        if (toBackfill.Count > 0)
+        {
+            foreach (var kv in toBackfill)
+            {
+                langMap[kv.Key] = new() { ["EN"] = kv.Value };
+                _db.OwnedCardLanguages.Add(new OwnedCardLanguage { CardId = kv.Key, SetId = SetId, Language = "EN", Quantity = kv.Value });
+            }
+            await _db.SaveChangesAsync();
+        }
+
+        return langMap;
     }
 
     [RelayCommand]
@@ -348,12 +409,55 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     }
 
     // Même sémantique que CardViewModel.IsOwned côté desktop : bascule plutôt qu'incrémente, pour
-    // le tap en vue binder.
+    // le tap en vue binder. En mode multi-langue, bascule tout à zéro ou met 1 exemplaire en EN,
+    // comme le raccourci "Owned" côté desktop.
     private async Task ToggleOwnedAsync(CardItem card)
     {
-        card.Quantity = card.Quantity > 0 ? 0 : 1;
-        await SaveOwnedAsync(card);
+        if (IsMultiLanguageMode)
+        {
+            if (card.Quantity > 0)
+                await SetLanguageQuantityAsync(card, null, 0);
+            else
+                await SetLanguageQuantityAsync(card, "EN", 1);
+        }
+        else
+        {
+            card.Quantity = card.Quantity > 0 ? 0 : 1;
+            await SaveOwnedAsync(card);
+        }
         RefreshCompletion();
+    }
+
+    // Écrit le détail par langue d'une carte (upsert une langue, ou remet tout à zéro si language
+    // est null) puis resynchronise l'agrégat OwnedCard.Quantity à partir de la somme. Utilisé par
+    // ToggleOwnedAsync (binder view) ; LanguageBreakdownPageViewModel a sa propre copie pour ne pas
+    // dépendre de cette classe depuis une autre page.
+    private async Task SetLanguageQuantityAsync(CardItem card, string? language, int quantity)
+    {
+        if (language is null)
+        {
+            var all = await _db.OwnedCardLanguages.Where(l => l.CardId == card.CardId).ToListAsync();
+            _db.OwnedCardLanguages.RemoveRange(all);
+        }
+        else
+        {
+            var entry = await _db.OwnedCardLanguages.FindAsync(card.CardId, language);
+            if (quantity > 0)
+            {
+                if (entry is null) _db.OwnedCardLanguages.Add(new OwnedCardLanguage { CardId = card.CardId, SetId = card.SetId, Language = language, Quantity = quantity });
+                else entry.Quantity = quantity;
+            }
+            else if (entry is not null)
+            {
+                _db.OwnedCardLanguages.Remove(entry);
+            }
+        }
+        await _db.SaveChangesAsync();
+
+        var total = await _db.OwnedCardLanguages.Where(l => l.CardId == card.CardId).SumAsync(l => (int?)l.Quantity) ?? 0;
+        card.LanguageQuantities = await _db.OwnedCardLanguages.Where(l => l.CardId == card.CardId).ToDictionaryAsync(l => l.Language, l => l.Quantity);
+        card.Quantity = total;
+        await SaveOwnedAsync(card);
     }
 
     private async Task SaveOwnedAsync(CardItem card)
@@ -394,7 +498,16 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
             $"&rarity={Uri.EscapeDataString(card.Rarity ?? "")}");
     }
 
-    private void RefreshCompletion()
+    // Passe l'objet CardItem directement (pas de sérialisation en chaîne) : LanguageBreakdownPage
+    // modifie la même instance partagée avec Cards, donc le retour sur cette page n'a besoin que
+    // de RefreshCompletion() (voir SetDetailPage.xaml.cs.OnAppearing), pas d'un rechargement complet.
+    public static Task NavigateToLanguageBreakdownAsync(CardItem card) =>
+        Shell.Current.GoToAsync(nameof(CardexMobile.Pages.LanguageBreakdownPage),
+            new Dictionary<string, object> { ["card"] = card });
+
+    // Public pour que SetDetailPage.OnAppearing puisse resynchroniser les compteurs après un
+    // retour de LanguageBreakdownPage, sans recharger tout le set (Cards.Count reste > 0).
+    public void RefreshCompletion()
     {
         var nonExcluded = Cards.Where(c => !c.IsExcluded).ToList();
         Total      = nonExcluded.Count;
@@ -443,6 +556,32 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
             _db.OwnedCards.RemoveRange(toRemove);
             foreach (var card in targets)
                 card.Quantity = 0;
+        }
+
+        if (IsMultiLanguageMode)
+        {
+            if (targetState)
+            {
+                var existingLangIds = (await _db.OwnedCardLanguages
+                    .Where(l => l.SetId == SetId)
+                    .Select(l => l.CardId)
+                    .ToListAsync()).ToHashSet();
+                foreach (var card in targets)
+                    if (!existingLangIds.Contains(card.CardId))
+                        _db.OwnedCardLanguages.Add(new OwnedCardLanguage { CardId = card.CardId, SetId = card.SetId, Language = "EN", Quantity = 1 });
+            }
+            else
+            {
+                var toRemoveLang = await _db.OwnedCardLanguages.Where(l => l.SetId == SetId).ToListAsync();
+                _db.OwnedCardLanguages.RemoveRange(toRemoveLang);
+            }
+            foreach (var card in targets)
+            {
+                // Détail exact rechargé au prochain LoadAsync — resynchronisé ici pour que le
+                // résumé affiché (LanguageSummary) ne mente pas avant ce rechargement.
+                card.LanguageQuantities = card.Quantity > 0 ? new() { ["EN"] = card.Quantity } : null;
+                card.NotifyLanguageQuantitiesChanged();
+            }
         }
 
         await _db.SaveChangesAsync();

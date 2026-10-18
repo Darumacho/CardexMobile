@@ -3,10 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:CardexMobile.ViewModels"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:conv="clr-namespace:CardexMobile.Converters"
              x:Class="CardexMobile.Pages.SetDetailPage"
              x:DataType="vm:SetDetailPageViewModel"
+             x:Name="PageRoot"
              Title="{Binding SetName}"
              BackgroundColor="{StaticResource PageBackground}">
+
+    <ContentPage.Resources>
+        <conv:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+    </ContentPage.Resources>
 
     <!-- Logo du set à la place du nom dans la barre de titre, avec repli sur le texte si le set
          n'a pas de logo (ex. certains sets de secours TCGdex). -->
@@ -265,14 +271,16 @@
                                         HeightRequest="36"
                                         BackgroundColor="{StaticResource AccentColor}"
                                         TextColor="{StaticResource TextPrimary}"
-                                        CornerRadius="6"/>
+                                        CornerRadius="6"
+                                        IsVisible="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMultiLanguageMode, Converter={StaticResource InvertedBoolConverter}}"/>
                                 <Label Grid.Column="1"
                                        Text="{Binding Quantity}"
                                        TextColor="{StaticResource TextPrimary}"
                                        FontSize="15"
                                        FontAttributes="Bold"
                                        HorizontalTextAlignment="Center"
-                                       VerticalOptions="Center"/>
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMultiLanguageMode, Converter={StaticResource InvertedBoolConverter}}"/>
                                 <Button Grid.Column="2"
                                         Text="+"
                                         Command="{Binding IncrementCommand}"
@@ -282,7 +290,34 @@
                                         HeightRequest="36"
                                         BackgroundColor="{StaticResource AccentColor}"
                                         TextColor="{StaticResource TextPrimary}"
-                                        CornerRadius="6"/>
+                                        CornerRadius="6"
+                                        IsVisible="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMultiLanguageMode, Converter={StaticResource InvertedBoolConverter}}"/>
+
+                                <!-- Bouton résumé par langue — remplace le stepper simple quand plusieurs
+                                     langues sont suivies, ouvre LanguageBreakdownPage au tap. -->
+                                <Border Grid.Column="0" Grid.ColumnSpan="3"
+                                        BackgroundColor="{StaticResource AccentColor}"
+                                        StrokeThickness="0"
+                                        HorizontalOptions="Start"
+                                        Padding="10,6"
+                                        IsVisible="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMultiLanguageMode}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="6"/>
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnLanguageBreakdownTapped"/>
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{Binding LanguageSummary}"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               FontSize="12"
+                                               VerticalOptions="Center"/>
+                                        <Label Text="▾"
+                                               TextColor="{StaticResource TextSecondary}"
+                                               FontSize="10"
+                                               VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                </Border>
 
                                 <!-- Tag pill — tap pour choisir/retirer un tag (action sheet) -->
                                 <Border Grid.Column="3"

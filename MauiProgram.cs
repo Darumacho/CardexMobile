@@ -38,11 +38,13 @@ public static class MauiProgram
         builder.Services.AddTransient<SettingsPageViewModel>();
         builder.Services.AddTransient<TagsPageViewModel>();
         builder.Services.AddTransient<AchievementsPageViewModel>();
+        builder.Services.AddTransient<LanguageBreakdownPageViewModel>();
         builder.Services.AddTransient<SetsPage>();
         builder.Services.AddTransient<SetDetailPage>();
         builder.Services.AddTransient<SearchPage>();
         builder.Services.AddTransient<CollectionPage>();
         builder.Services.AddTransient<CardZoomPage>();
+        builder.Services.AddTransient<LanguageBreakdownPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<AchievementsPage>();
         builder.Services.AddTransient<TagsPage>();

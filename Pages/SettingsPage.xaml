@@ -105,6 +105,39 @@
                 </BindableLayout.ItemTemplate>
             </FlexLayout>
 
+            <Label Text="LANGUAGES"
+                   TextColor="White"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   CharacterSpacing="1"
+                   Padding="16,18,16,4"/>
+
+            <Label Text="Choose which languages to track. English is always tracked. Once more than one is checked, each card's quantity field opens a per-language breakdown instead of a simple counter."
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   Padding="16,0,16,10"/>
+
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding LanguageOptions}"
+                                  Margin="4,0,4,0">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LanguageOptionViewModel">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="16,8"
+                              BackgroundColor="{StaticResource PanelBackground}">
+                            <Label Grid.Column="0"
+                                   Text="{Binding Label}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="14"
+                                   VerticalOptions="Center"/>
+                            <Switch Grid.Column="1"
+                                    IsToggled="{Binding IsTracked}"
+                                    IsEnabled="{Binding IsEnabled}"
+                                    OnColor="{StaticResource HighlightColor}"/>
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
             <Label Text="SYNC"
                    TextColor="White"
                    FontSize="11"

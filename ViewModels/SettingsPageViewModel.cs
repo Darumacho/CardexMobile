@@ -4,6 +4,7 @@ using Cardex.Services;
 using CardexMobile.Data;
 using CardexMobile.Services;
 using CommunityToolkit.Maui.Alerts;
+using System.Collections.ObjectModel;
 
 namespace CardexMobile.ViewModels;
 
@@ -18,6 +19,7 @@ public partial class SettingsPageViewModel : ObservableObject
     private readonly MobileUpdateService _updateService;
 
     public IReadOnlyList<ColorSwatch> BorderColorSwatches => ColorSwatch.Palette;
+    public ObservableCollection<LanguageOptionViewModel> LanguageOptions { get; } = [];
 
     [ObservableProperty] private bool   _showMyCollection;
     [ObservableProperty] private string _collectionBorderColor = "#3a7fc1";
@@ -45,6 +47,31 @@ public partial class SettingsPageViewModel : ObservableObject
         _showMyCollection = settings.ShowMyCollection;
         _collectionBorderColor = settings.CollectionBorderColor;
         _collectionSyncApiKey = settings.CollectionSyncApiKey ?? "";
+
+        foreach (var (code, label) in LanguageCatalog.All)
+        {
+            var opt = new LanguageOptionViewModel(code, label, settings.TrackedLanguages.Contains(code), isLocked: code == "EN");
+            opt.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(LanguageOptionViewModel.IsTracked))
+                    OnLanguageOptionToggled();
+            };
+            LanguageOptions.Add(opt);
+        }
+    }
+
+    private void OnLanguageOptionToggled()
+    {
+        // L'anglais reste toujours suivi (données existantes implicitement en anglais) —
+        // défensif, la case est aussi désactivée côté UI.
+        var en = LanguageOptions.First(o => o.Code == "EN");
+        if (!en.IsTracked) en.IsTracked = true;
+
+        _settings.TrackedLanguages = LanguageOptions.Where(o => o.IsTracked).Select(o => o.Code).ToList();
+        _settings.Save();
+        // Contrairement au desktop (sets déjà ouverts gardés en mémoire), SetDetailPageViewModel
+        // est recréé à chaque navigation (AddTransient) et lit IsMultiLanguageMode dynamiquement
+        // depuis _settings — pas besoin de forcer un rechargement ici.
     }
 
     public async Task CheckForUpdateAsync()
@@ -119,7 +146,7 @@ public partial class SettingsPageViewModel : ObservableObject
         try
         {
             await _dbInit.ReadyTask;
-            var syncService = new CollectionSyncService(_db, apiKey);
+            var syncService = new CollectionSyncService(_db, _settings, apiKey);
             var remote = await syncService.FetchRemoteStateAsync();
 
             if (remote is not null && remote.Origin != "mobile")
@@ -185,7 +212,7 @@ public partial class SettingsPageViewModel : ObservableObject
         if (!confirmed) return;
 
         await _dbInit.ReadyTask;
-        var syncService = new CollectionSyncService(_db, string.Empty);
+        var syncService = new CollectionSyncService(_db, _settings, string.Empty);
         await syncService.ApplyCollectionJsonAsync(json);
 
         _ = Toast.Make($"Collection restored from backup ({latest.LastWriteTime:dd/MM/yyyy HH:mm}).").Show();

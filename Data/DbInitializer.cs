@@ -79,5 +79,12 @@ public class DbInitializer
             CREATE TABLE IF NOT EXISTS UnlockedAchievements (
                 Id         TEXT NOT NULL PRIMARY KEY,
                 UnlockedAt TEXT NOT NULL)");
+        TryAlter(@"
+            CREATE TABLE IF NOT EXISTS OwnedCardLanguages (
+                CardId   TEXT NOT NULL,
+                SetId    TEXT NOT NULL DEFAULT '',
+                Language TEXT NOT NULL DEFAULT 'EN',
+                Quantity INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (CardId, Language))");
     }
 }

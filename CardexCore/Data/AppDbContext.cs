@@ -7,6 +7,7 @@ namespace Cardex.Data;
 public class AppDbContext : DbContext
 {
     public DbSet<OwnedCard> OwnedCards { get; set; }
+    public DbSet<OwnedCardLanguage> OwnedCardLanguages { get; set; }
     public DbSet<WantedCard> WantedCards { get; set; }
     public DbSet<FavoriteSet> FavoriteSets { get; set; }
     public DbSet<CachedSet> CachedSets { get; set; }
@@ -15,6 +16,11 @@ public class AppDbContext : DbContext
     public DbSet<Tag> Tags { get; set; }
     public DbSet<CardTag> CardTags { get; set; }
     public DbSet<UnlockedAchievement> UnlockedAchievements { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OwnedCardLanguage>().HasKey(l => new { l.CardId, l.Language });
+    }
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
         => options.UseSqlite($"Data Source={GetDatabasePath()}");
