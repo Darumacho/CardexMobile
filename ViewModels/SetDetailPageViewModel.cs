@@ -91,15 +91,151 @@ public partial class CardItem : ObservableObject
     [RelayCommand] private Task ToggleOwned()    => OnToggleOwned?.Invoke(this)    ?? Task.CompletedTask;
     [RelayCommand] private Task OpenHd()         => OnOpenHd?.Invoke(this)         ?? Task.CompletedTask;
 
+    // Les 4 sets "Trainer Kit" demi-deck (EX Latias/Latios, EX Plusle/Minun) partagent un même
+    // code Cardmarket/TCGPlayer ("TK1"/"TK2") avec un suffixe a/b porté par le NUMÉRO de la carte,
+    // pas par le set — vérifié empiriquement, "Bagon TK1A 1" ne donne aucun résultat, "Bagon TK1 1A"
+    // si. Même correctif que CardViewModel.CmSearchQuery/TcgSearchQuery côté desktop.
+    private static readonly Dictionary<string, (string Code, string Suffix)> MarketplaceOverrides = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "tk1a", ("TK1", "a") },
+        { "tk1b", ("TK1", "b") },
+        { "tk2a", ("TK2", "a") },
+        { "tk2b", ("TK2", "b") },
+    };
+
+    // DP Trainer Kit : suffixe = initiale du Pokémon AVANT le numéro (ex. "L1"), pas de padding.
+    // La plupart des autres (BW/XY) font l'inverse : NUMÉRO puis lettre (ex. "1S"). Exceptions
+    // confirmées empiriquement par l'utilisateur au fil de plusieurs essais ("Cardmarket ne fait
+    // rien de manière constante") : TK9 (Pikachu Libre/Suicune) repasse en lettre-avant-numéro
+    // comme DP ; SM (TK10) est lettre-avant-numéro mais avec le numéro complété à 2 chiffres
+    // seulement s'il est < 10 ("L01", "L10").
+    // Les deux moitiés d'un même coffret partagent toujours le même numéro TK. Même table que
+    // SetShortCodes.TrainerKitLetterOverrides desktop.
+    private enum TrainerKitLetterPosition { BeforeNumber, BeforeNumberPadded, AfterNumber }
+
+    private static readonly Dictionary<string, (string Code, string PokemonLetter, TrainerKitLetterPosition Position)> TrainerKitLetterOverrides = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "tk-dp-l",     ("TK3",  "L", TrainerKitLetterPosition.BeforeNumber) },       // DP Trainer Kit Lucario
+        { "tk-dp-m",     ("TK3",  "M", TrainerKitLetterPosition.BeforeNumber) },       // DP Trainer Kit Manaphy
+        { "tk-bw-z",     ("TK5",  "Z", TrainerKitLetterPosition.AfterNumber) },        // BW Trainer Kit Zoroark
+        { "tk-bw-e",     ("TK5",  "E", TrainerKitLetterPosition.AfterNumber) },        // BW Trainer Kit Excadrill
+        { "tk-xy-n",     ("TK6",  "N", TrainerKitLetterPosition.AfterNumber) },        // XY Trainer Kit Noivern
+        { "tk-xy-sy",    ("TK6",  "S", TrainerKitLetterPosition.AfterNumber) },        // XY Trainer Kit Sylveon
+        { "tk-xy-b",     ("TK7",  "B", TrainerKitLetterPosition.AfterNumber) },        // XY Trainer Kit Bisharp
+        { "tk-xy-w",     ("TK7",  "W", TrainerKitLetterPosition.AfterNumber) },        // XY Trainer Kit Wigglytuff
+        { "tk-xy-latia", ("TK8",  "a", TrainerKitLetterPosition.AfterNumber) },        // XY Trainer Kit Latias
+        { "tk-xy-latio", ("TK8",  "o", TrainerKitLetterPosition.AfterNumber) },        // XY Trainer Kit Latios
+        { "tk-xy-p",     ("TK9",  "P", TrainerKitLetterPosition.BeforeNumber) },       // XY Trainer Kit Pikachu Libre
+        { "tk-xy-su",    ("TK9",  "S", TrainerKitLetterPosition.BeforeNumber) },       // XY Trainer Kit Suicune
+        { "tk-sm-l",     ("TK10", "L", TrainerKitLetterPosition.BeforeNumberPadded) }, // SM Trainer Kit Lycanroc
+        { "tk-sm-r",     ("TK10", "A", TrainerKitLetterPosition.BeforeNumberPadded) }, // SM Trainer Kit Alolan Raichu
+    };
+
+    private static string FormatTrainerKitNumber(string number, string letter, TrainerKitLetterPosition position) => position switch
+    {
+        TrainerKitLetterPosition.BeforeNumber => $"{letter}{number}",
+        TrainerKitLetterPosition.BeforeNumberPadded => $"{letter}{(int.TryParse(number, out var n) && n < 10 ? n.ToString("D2") : number)}",
+        _ => $"{number}{letter}",
+    };
+
+    // Cardmarket (uniquement — pas TCGPlayer) veut le code court plutôt que le SetId brut à
+    // partir du bloc XY, contrairement aux blocs précédents (WotC à BW) qui fonctionnent avec le
+    // SetId en majuscules. Vérifié empiriquement par l'utilisateur : "PFL" marche pour Phantasmal
+    // Flames (me2), "ME2" non. Mobile n'a pas de table ShortCode par set (contrairement au
+    // desktop) : copie directe des entrées XY-et-après de SetShortCodes.BySetId desktop.
+    private static readonly Dictionary<string, string> CardmarketShortCodesFromXy = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "xy0", "KSS" }, { "xy1", "XY" }, { "xy2", "FF" }, { "mcd14", "MCD14" }, { "xy3", "FRF" },
+        { "xy4", "PHF" }, { "xy5", "PC" }, { "dc1", "DCR" }, { "xy6", "ROS" }, { "xy7", "AO" },
+        { "xy8", "BRK" }, { "mcd15", "MCD15" }, { "xy9", "BRP" }, { "g1", "GEN" }, { "xy10", "FC" },
+        { "xy11", "STM" }, { "mcd16", "MCD16" }, { "xy12", "EVL" },
+        { "smp", "SBP" }, { "sm1", "SM" }, { "sm2", "GRI" }, { "sm3", "BSH" }, { "sm35", "SHL" },
+        { "sm4", "CINV" }, { "mcd17", "MCD17" }, { "sm5", "UPR" }, { "sm6", "FBL" }, { "sm7", "CST" },
+        { "sm75", "DRJ" }, { "mcd18", "MCD18" }, { "sm8", "LTH" }, { "sm9", "TUP" }, { "det1", "DEP" },
+        { "sm10", "UBN" }, { "sm11", "UMN" }, { "sm115", "HFT" }, { "sma", "HFSV" }, { "mcd19", "MCD19" },
+        { "sm12", "CE" },
+        { "swshp", "SWP" }, { "swsh1", "SWSH" }, { "swsh2", "RCL" }, { "swsh3", "DAB" },
+        { "fut20", "FCL" }, { "swsh35", "CHP" }, { "swsh4", "VV" }, { "mcd21", "MCD21" },
+        { "swsh45sv", "SFSV" }, { "swsh45", "SHF" }, { "swsh5", "BST" }, { "swsh6", "CHR" },
+        { "swsh7", "EVS" }, { "cel25c", "CLSC" }, { "cel25", "CEL" }, { "swsh8", "FST" },
+        { "swsh9", "BRS" }, { "swsh9tg", "BRTG" }, { "swsh10", "ASR" }, { "swsh10tg", "ARTG" },
+        { "pgo", "PGO" }, { "mcd22", "MCD22" }, { "swsh11", "LOR" }, { "swsh11tg", "LOTG" },
+        { "swsh12", "SVT" }, { "swsh12tg", "SVTG" }, { "svp", "SVP" }, { "swsh12pt5", "CZ" },
+        { "swsh12pt5gg", "CZGG" },
+        { "sv1", "SV1" }, { "sve", "SVE" }, { "sv2", "PAL" }, { "sv3", "OBF" }, { "sv3pt5", "MEW" },
+        { "sv4", "PAR" }, { "sv4pt5", "PAF" }, { "sv5", "TEF" }, { "sv6", "TWM" }, { "sv6pt5", "SFA" },
+        { "sv7", "SCR" }, { "sv8", "SSP" }, { "sv8pt5", "PRE" }, { "sv9", "JTG" }, { "sv10", "DRI" },
+        { "zsv10pt5", "BLK" }, { "rsv10pt5", "WHT" },
+        { "me1", "MEG" }, { "me2", "PFL" }, { "me2pt5", "ASC" }, { "me3", "POR" }, { "me4", "CRI" },
+        { "me5", "PBL" },
+        { "ex5.5", "PCCP" }, // Poké Card Creator Pack — exception pré-XY, "PCCP" marche, "EX5.5" non.
+
+        // Blocs Base/Gym/Neo/E-Card, EX, Diamond & Pearl/Platinum, HGSS, Black & White — même
+        // règle étendue à la demande de l'utilisateur. Exclus volontairement : dpp/hsp (override
+        // dédié ci-dessous), bwp (confirmé correct tel quel avec le SetId brut), xyp (conflit non
+        // résolu), et les sets Trainer Kit (règles dédiées plus haut).
+        { "base1", "BS" }, { "base2", "JU" }, { "basep", "WBP" }, { "base3", "FO" },
+        { "base4", "BS2" }, { "base5", "TR" }, { "gym1", "GH" }, { "gym2", "GC" },
+        { "neo1", "NG" }, { "neo2", "NDI" }, { "si1", "SI" }, { "neo3", "NR" },
+        { "neo4", "NDE" }, { "base6", "LC" }, { "ecard1", "EXP" }, { "bp", "BOG" },
+        { "ecard2", "AQ" }, { "ecard3", "SK" },
+        { "ex1", "RS" }, { "ex2", "SS" }, { "np", "NBP" }, { "ex3", "DR" }, { "ex4", "MA" },
+        { "ex5", "HL" }, { "ex6", "FRLG" }, { "pop1", "P1" }, { "ex7", "TRR" }, { "ex8", "DX" },
+        { "ex9", "EM" }, { "pop2", "P2" }, { "ex10", "UF" }, { "ex11", "DS" }, { "ex12", "LM" },
+        { "pop3", "P3" }, { "ex13", "HP" }, { "pop4", "P4" }, { "ex14", "CG" }, { "ex15", "DF" },
+        { "ex16", "PK" }, { "pop5", "P5" },
+        { "dp1", "DP" }, { "dp2", "MT" }, { "pop6", "P6" }, { "dp3", "SW" }, { "dp4", "GE" },
+        { "pop7", "P7" }, { "dp5", "MD" }, { "dp6", "LA" }, { "pop8", "P8" }, { "dp7", "STF" },
+        { "pl1", "PLT" }, { "pop9", "P9" }, { "pl2", "RR" }, { "pl3", "SVC" }, { "pl4", "ARC" },
+        { "ru1", "RMB" }, { "hgss1", "HGSS" }, { "hgss2", "UL" }, { "hgss3", "UD" },
+        { "hgss4", "TM" }, { "col1", "CL" },
+        { "bw1", "BW" }, { "mcd11", "MCD11" }, { "bw2", "EP" }, { "bw3", "NV" }, { "bw4", "ND" },
+        { "bw5", "DE" }, { "mcd12", "MCD12" }, { "bw6", "DRX" }, { "dv1", "DRV" }, { "bw7", "BC" },
+        { "bw8", "PST" }, { "bw9", "PFZ" }, { "bw10", "PLB" }, { "bw11", "LT" },
+    };
+
+    // Exceptions ponctuelles Cardmarket où ni le SetId brut, ni CardmarketShortCodesFromXy, ni les
+    // règles Trainer Kit ne suffisent — vérifié empiriquement carte par carte. Code=null veut dire
+    // "pas de code du tout dans la requête, juste le nom et le numéro" (HGSS Black Star Promos).
+    // StripNumberPrefix retire un préfixe du NUMÉRO avant de l'insérer ("DP01" -> "01").
+    private static readonly Dictionary<string, (string? Code, string? StripNumberPrefix)> CardmarketCustomOverrides = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "dpp", ("DPPR", "DP") }, // DP Black Star Promos : "DPPR 1" marche, "DPP DP1" non.
+        { "hsp", (null,   null) }, // HGSS Black Star Promos : "HGSS1" seul marche, "HSP HGSS1" non.
+    };
+
+    private static string StripNumberPrefix(string number, string? prefix) =>
+        prefix is not null && number.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? number[prefix.Length..]
+            : number;
+
     // Pas d'URL directe pour certains sets de secours (TCGdex) : on retombe sur une recherche par
     // nom + set + numéro, même format que CardViewModel.OpenCmLink/OpenTcgLink côté desktop.
-    private string SearchQuery => Uri.EscapeDataString($"{Name} {SetId.ToUpperInvariant()} {Number}");
+    private string CmSearchQuery => Uri.EscapeDataString(
+        CardmarketCustomOverrides.TryGetValue(SetId, out var cmCustom)
+            ? (cmCustom.Code is null
+                ? $"{Name} {StripNumberPrefix(Number, cmCustom.StripNumberPrefix)}"
+                : $"{Name} {cmCustom.Code} {StripNumberPrefix(Number, cmCustom.StripNumberPrefix)}")
+            : MarketplaceOverrides.TryGetValue(SetId, out var o)
+                ? $"{Name} {o.Code} {Number}{o.Suffix}"
+                : TrainerKitLetterOverrides.TryGetValue(SetId, out var lo)
+                    ? $"{Name} {lo.Code} {FormatTrainerKitNumber(Number, lo.PokemonLetter, lo.Position)}"
+                    : CardmarketShortCodesFromXy.TryGetValue(SetId, out var sc)
+                        ? $"{Name} {sc} {Number}"
+                        : $"{Name} {SetId.ToUpperInvariant()} {Number}");
+
+    private string TcgSearchQuery => Uri.EscapeDataString(
+        MarketplaceOverrides.TryGetValue(SetId, out var to)
+            ? $"{Name} {to.Code} {Number}{to.Suffix}"
+            : TrainerKitLetterOverrides.TryGetValue(SetId, out var tlo)
+                ? $"{Name} {tlo.Code} {FormatTrainerKitNumber(Number, tlo.PokemonLetter, tlo.Position)}"
+                : $"{Name} {SetId.ToUpperInvariant()} {Number}");
 
     [RelayCommand]
     private Task OpenCmLink()
     {
         var url = !string.IsNullOrEmpty(CmUrl) ? CmUrl
-            : $"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={SearchQuery}";
+            : $"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={CmSearchQuery}";
         return Microsoft.Maui.ApplicationModel.Launcher.OpenAsync(url);
     }
 
@@ -107,7 +243,7 @@ public partial class CardItem : ObservableObject
     private Task OpenTcgLink()
     {
         var url = !string.IsNullOrEmpty(TcgUrl) ? TcgUrl
-            : $"https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&view=grid&q={SearchQuery}";
+            : $"https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&view=grid&q={TcgSearchQuery}";
         return Microsoft.Maui.ApplicationModel.Launcher.OpenAsync(url);
     }
 }
