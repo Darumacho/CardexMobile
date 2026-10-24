@@ -22,6 +22,7 @@ public partial class SettingsPageViewModel : ObservableObject
     public ObservableCollection<LanguageOptionViewModel> LanguageOptions { get; } = [];
 
     [ObservableProperty] private bool   _showMyCollection;
+    [ObservableProperty] private bool   _showStats;
     [ObservableProperty] private string _collectionBorderColor = "#3a7fc1";
     [ObservableProperty] private string _collectionSyncApiKey = "";
     [ObservableProperty] private bool   _isSyncing;
@@ -45,6 +46,7 @@ public partial class SettingsPageViewModel : ObservableObject
         _dbInit = dbInit;
         _updateService = updateService;
         _showMyCollection = settings.ShowMyCollection;
+        _showStats = settings.ShowStats;
         _collectionBorderColor = settings.CollectionBorderColor;
         _collectionSyncApiKey = settings.CollectionSyncApiKey ?? "";
 
@@ -107,6 +109,12 @@ public partial class SettingsPageViewModel : ObservableObject
     partial void OnShowMyCollectionChanged(bool value)
     {
         _settings.ShowMyCollection = value;
+        _settings.Save();
+    }
+
+    partial void OnShowStatsChanged(bool value)
+    {
+        _settings.ShowStats = value;
         _settings.Save();
     }
 

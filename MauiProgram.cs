@@ -48,11 +48,13 @@ public static class MauiProgram
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<AchievementsPage>();
         builder.Services.AddTransient<TagsPage>();
+        builder.Services.AddTransient<StatsPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
 
+        builder.Services.AddSingleton<CatalogPreloader>();
         builder.Services.AddSingleton<DbInitializer>();
 
         var app = builder.Build();

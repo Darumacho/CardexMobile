@@ -139,6 +139,130 @@
                                              BindableLayout.ItemTemplate="{StaticResource SetRowTemplate}"/>
                     </VerticalStackLayout>
 
+                    <!-- Stats -->
+                    <VerticalStackLayout IsVisible="{Binding HasStats}">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="16,14,16,4"
+                              BackgroundColor="{StaticResource PageBackground}">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleStatsExpandedCommand}"/>
+                            </Grid.GestureRecognizers>
+                            <Label Grid.Column="0" Text="STATS"
+                                   TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Label Grid.Column="1" Text="{Binding StatsChevron}"
+                                   TextColor="{StaticResource TextSecondary}" FontSize="11"/>
+                        </Grid>
+                        <VerticalStackLayout IsVisible="{Binding StatsExpanded}"
+                                             Padding="16,4,16,14"
+                                             Spacing="8">
+
+                            <Label TextColor="{StaticResource TextPrimary}" FontSize="13" LineBreakMode="WordWrap">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="You have "/>
+                                        <Span Text="{Binding Stats.TotalOwnedCards}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                        <Span Text=" total cards, spread across "/>
+                                        <Span Text="{Binding Stats.TotalSets}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                        <Span Text=" sets."/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+
+                            <Label TextColor="{StaticResource TextPrimary}" FontSize="13" LineBreakMode="WordWrap">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="Out of the "/>
+                                        <Span Text="{Binding Stats.SetsBegun}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                        <Span Text=" sets you've begun, "/>
+                                        <Span Text="{Binding Stats.SetsComplete}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                        <Span Text=" are complete."/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+
+                            <!-- FlexLayout plutôt que FormattedText unique : l'icône doit être collée au nom
+                                 du Pokémon (pas au début de la phrase), ce qui impose de couper le texte en
+                                 deux Labels de part et d'autre de l'Image (un Span ne peut pas contenir de vue). -->
+                            <FlexLayout Wrap="Wrap" AlignItems="Center">
+                                <Label Text="Your most-collected Pokémon is "
+                                       TextColor="{StaticResource TextPrimary}" FontSize="13" VerticalOptions="Center"/>
+                                <Image Source="{Binding Stats.TopPokemonSpriteUrl}"
+                                       WidthRequest="32" HeightRequest="32"
+                                       IsVisible="{Binding Stats.HasTopPokemonSprite}"
+                                       VerticalOptions="Center"
+                                       Margin="0,0,2,0"/>
+                                <Label TextColor="{StaticResource TextPrimary}" FontSize="13" VerticalOptions="Center">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding Stats.TopPokemonName}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                            <Span Text=" with "/>
+                                            <Span Text="{Binding Stats.TopPokemonCount}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                            <Span Text=" cards."/>
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                            </FlexLayout>
+
+                            <Label TextColor="{StaticResource TextPrimary}" FontSize="13" LineBreakMode="WordWrap">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="You've unlocked "/>
+                                        <Span Text="{Binding Stats.UnlockedAchievements}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                        <Span Text=" achievements out of "/>
+                                        <Span Text="{Binding Stats.TotalAchievements}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                        <Span Text="."/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+
+                            <Label Text="MOST-COMPLETED SERIES" TextColor="{StaticResource TextSecondary}" FontSize="10" FontAttributes="Bold" CharacterSpacing="1" Margin="0,4,0,0"/>
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Stats.TopCategories}" Spacing="3">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SeriesCompletionStat">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0" Text="{Binding SeriesName}" TextColor="{StaticResource TextPrimary}" FontSize="12"/>
+                                            <Label Grid.Column="1" TextColor="{StaticResource WantedColor}" FontSize="12" FontAttributes="Bold">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="{Binding PercentText}"/>
+                                                        <Span Text=" ("/>
+                                                        <Span Text="{Binding Owned}"/>
+                                                        <Span Text="/"/>
+                                                        <Span Text="{Binding Total}"/>
+                                                        <Span Text=")"/>
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+
+                            <Label Text="COLLECTION BY RARITY" TextColor="{StaticResource TextSecondary}" FontSize="10" FontAttributes="Bold" CharacterSpacing="1" Margin="0,4,0,0"/>
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Stats.RarityBreakdown}" Spacing="3">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RarityStat">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0" Text="{Binding Rarity}" TextColor="{StaticResource TextPrimary}" FontSize="12"/>
+                                            <Label Grid.Column="1" TextColor="{StaticResource HighlightColor}" FontSize="12" FontAttributes="Bold">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="{Binding Count}"/>
+                                                        <Span Text=" ("/>
+                                                        <Span Text="{Binding PercentText}"/>
+                                                        <Span Text=")"/>
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
                     <!-- Wanted -->
                     <VerticalStackLayout IsVisible="{Binding HasWanted}">
                         <Grid ColumnDefinitions="*,Auto"

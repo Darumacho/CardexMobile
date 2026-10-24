@@ -51,6 +51,10 @@
         <ShellContent ContentTemplate="{DataTemplate pages:SettingsPage}" Route="SettingsPage"/>
     </FlyoutItem>
 
+    <FlyoutItem Title="Stats" FlyoutIcon="stats_icon.png" Route="StatsFlyoutItem">
+        <ShellContent ContentTemplate="{DataTemplate pages:StatsPage}" Route="StatsPage"/>
+    </FlyoutItem>
+
     <FlyoutItem Title="Achievements" FlyoutIcon="trophy_icon.png" Route="AchievementsFlyoutItem">
         <ShellContent ContentTemplate="{DataTemplate pages:AchievementsPage}" Route="AchievementsPage"/>
     </FlyoutItem>

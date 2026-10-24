@@ -69,6 +69,19 @@
                         OnColor="{StaticResource HighlightColor}"/>
             </Grid>
 
+            <Grid ColumnDefinitions="*,Auto"
+                  Padding="16,10"
+                  BackgroundColor="{StaticResource PanelBackground}">
+                <Label Grid.Column="0"
+                       Text="Show Stats section"
+                       TextColor="{StaticResource TextPrimary}"
+                       FontSize="14"
+                       VerticalOptions="Center"/>
+                <Switch Grid.Column="1"
+                        IsToggled="{Binding ShowStats}"
+                        OnColor="{StaticResource HighlightColor}"/>
+            </Grid>
+
             <Label Text="COLLECTION BORDER COLOR"
                    TextColor="White"
                    FontSize="11"

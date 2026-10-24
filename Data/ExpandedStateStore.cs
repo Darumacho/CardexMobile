@@ -9,7 +9,8 @@ public static class ExpandedStateStore
 {
     private const string Prefix = "expanded.";
 
-    public static bool Get(string key) => Preferences.Default.Get(Prefix + key, true);
+    public static bool Get(string key) => Get(key, true);
+    public static bool Get(string key, bool defaultValue) => Preferences.Default.Get(Prefix + key, defaultValue);
 
     public static void Set(string key, bool value) => Preferences.Default.Set(Prefix + key, value);
 }

@@ -8,6 +8,7 @@ public class AppSettings
     public string? ApiKey { get; set; }
     public string CollectionBorderColor { get; set; } = "#3a7fc1";
     public bool ShowMyCollection { get; set; } = true;
+    public bool ShowStats { get; set; } = true;
 
     // Clé API Cardex fournie par l'utilisateur pour la synchro de collection (distincte de la clé
     // catalogue PokemonTcgService ci-dessus) — bookkeeping purement local, jamais envoyé dans le

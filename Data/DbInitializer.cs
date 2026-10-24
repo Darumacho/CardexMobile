@@ -28,6 +28,10 @@ public class DbInitializer
         await TcgdexSeeder.SeedIfNeededAsync(db);
 
         await CheckForUpdateAsync(scope.ServiceProvider.GetRequiredService<MobileUpdateService>());
+
+        // Fire-and-forget, volontairement après ReadyTask (voir TriggerOnce) : rattrape en tâche de
+        // fond les sets jamais visités/possédés, sinon invisibles de Search (voir CatalogPreloader).
+        scope.ServiceProvider.GetRequiredService<CatalogPreloader>().TriggerOnce();
     }
 
     // Simple notification au démarrage (pas de bannière globale comme sur desktop — pas de slot
