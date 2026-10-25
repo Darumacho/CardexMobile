@@ -150,7 +150,7 @@
 
                         <!-- Card info -->
                         <Grid Grid.Column="1"
-                              RowDefinitions="Auto,Auto,Auto,Auto"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                               RowSpacing="5">
 
                             <!-- Row 0: Number + Name + Favorite + Excluded -->
@@ -348,6 +348,27 @@
                                     </HorizontalStackLayout>
                                 </Border>
                             </Grid>
+
+                            <!-- Row 4: Holo pill — même esprit que la pastille Tag, n'a de sens
+                                 que pour une carte possédée. -->
+                            <Border Grid.Row="4"
+                                    BackgroundColor="{StaticResource AccentColor}"
+                                    Opacity="{Binding HoloOpacity}"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="Start"
+                                    Padding="8,4"
+                                    IsVisible="{Binding IsOwned}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleHoloCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="✦ Holo"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="10"
+                                       FontAttributes="Bold"/>
+                            </Border>
 
                         </Grid>
                     </Grid>

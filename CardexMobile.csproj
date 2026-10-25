@@ -11,8 +11,8 @@
 
 		<ApplicationTitle>Cardex</ApplicationTitle>
 		<ApplicationId>com.cardex.mobile</ApplicationId>
-		<ApplicationDisplayVersion>2.0</ApplicationDisplayVersion>
-		<ApplicationVersion>11</ApplicationVersion>
+		<ApplicationDisplayVersion>2.1</ApplicationDisplayVersion>
+		<ApplicationVersion>12</ApplicationVersion>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 	</PropertyGroup>

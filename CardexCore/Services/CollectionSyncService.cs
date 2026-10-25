@@ -101,7 +101,7 @@ public class CollectionSyncService
     {
         var snapshot = new CollectionSnapshot(
             OwnedCards: (await _db.OwnedCards.ToListAsync())
-                .Select(o => new SyncOwnedCard(o.CardId, o.SetId, o.Quantity, o.OwnedAt)).ToList(),
+                .Select(o => new SyncOwnedCard(o.CardId, o.SetId, o.Quantity, o.OwnedAt, o.IsHolo)).ToList(),
             WantedCards: (await _db.WantedCards.ToListAsync())
                 .Select(w => new SyncSimpleCard(w.CardId, w.SetId)).ToList(),
             ExcludedCards: (await _db.ExcludedCards.ToListAsync())
@@ -144,7 +144,7 @@ public class CollectionSyncService
 
         if (snapshot.OwnedCards?.Count > 0)
             _db.OwnedCards.AddRange(snapshot.OwnedCards.Select(o =>
-                new OwnedCard { CardId = o.CardId, SetId = o.SetId, Quantity = o.Quantity, OwnedAt = o.OwnedAt }));
+                new OwnedCard { CardId = o.CardId, SetId = o.SetId, Quantity = o.Quantity, OwnedAt = o.OwnedAt, IsHolo = o.IsHolo }));
         if (snapshot.WantedCards?.Count > 0)
             _db.WantedCards.AddRange(snapshot.WantedCards.Select(w =>
                 new WantedCard { CardId = w.CardId, SetId = w.SetId }));
@@ -191,7 +191,7 @@ public record CollectionSnapshot(
     List<SyncOwnedCardLanguage>? OwnedCardLanguages = null,
     List<string>? TrackedLanguages = null);
 
-public record SyncOwnedCard(string CardId, string SetId, int Quantity, DateTime OwnedAt);
+public record SyncOwnedCard(string CardId, string SetId, int Quantity, DateTime OwnedAt, bool IsHolo = false);
 public record SyncSimpleCard(string CardId, string SetId);
 public record SyncTag(int Id, string Name, string Color);
 public record SyncCardTag(string CardId, int TagId);

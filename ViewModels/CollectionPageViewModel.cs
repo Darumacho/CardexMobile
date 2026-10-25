@@ -182,7 +182,7 @@ public partial class CollectionPageViewModel : ObservableObject
                 {
                     CardId = c.Id, SetId = setId, Name = c.Name, Number = c.Number,
                     ImageSmall = c.Images.Small, ImageLarge = c.Images.Large,
-                    Rarity = c.Rarity, SortOrder = order++,
+                    Rarity = c.Rarity, SortOrder = order++, Supertype = c.Supertype,
                     CmLow  = c.Cardmarket?.Prices?.LowPrice,
                     TcgLow = c.Tcgplayer?.Prices?.Values.FirstOrDefault()?.Low,
                     CmUrl  = c.Cardmarket?.Url,
@@ -227,15 +227,18 @@ public partial class CollectionPageViewModel : ObservableObject
 
         var ownedRows = await _db.OwnedCards
             .Where(o => o.Quantity > 0)
-            .Join(_db.CachedCards, o => o.CardId, c => c.CardId, (o, c) => new { o.Quantity, c.Name, c.Rarity })
+            .Join(_db.CachedCards, o => o.CardId, c => c.CardId, (o, c) => new { o.Quantity, o.IsHolo, c.Name, c.Rarity, c.Supertype })
             .ToListAsync();
 
         var totalOwned = ownedRows.Count;
+        var totalHolo = ownedRows.Count(r => r.IsHolo);
 
         // Regroupe par nom d'espèce nettoyé des décorations TCG (voir PokeSpriteService.
         // CleanSpeciesName) : sans ça, "Lugia", "Shining Lugia", "Lugia V", "Lugia VSTAR"... sont
         // comptés séparément et aucune variante individuelle ne ressort comme "la plus collectée".
+        // Filtré sur Supertype "Pokémon" : sinon Energy/Trainer faussaient le classement.
         var topPokemon = ownedRows
+            .Where(r => r.Supertype == "Pokémon")
             .GroupBy(r => PokeSpriteService.CleanSpeciesName(r.Name))
             .Select(g => new { Name = g.Key, Count = g.Sum(r => r.Quantity) })
             .OrderByDescending(g => g.Count)
@@ -266,6 +269,7 @@ public partial class CollectionPageViewModel : ObservableObject
         Stats = new CollectionStatsViewModel
         {
             TotalOwnedCards = totalOwned,
+            TotalHoloCards = totalHolo,
             TotalSets = allSets.Count,
             SetsBegun = setsBegun,
             SetsComplete = setsComplete,

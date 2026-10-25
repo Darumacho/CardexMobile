@@ -26,12 +26,65 @@ public class DbInitializer
         await db.Database.EnsureCreatedAsync();
         MigrateSchema(db);
         await TcgdexSeeder.SeedIfNeededAsync(db);
+        await BackfillSupertypesAsync(db);
 
         await CheckForUpdateAsync(scope.ServiceProvider.GetRequiredService<MobileUpdateService>());
 
         // Fire-and-forget, volontairement après ReadyTask (voir TriggerOnce) : rattrape en tâche de
         // fond les sets jamais visités/possédés, sinon invisibles de Search (voir CatalogPreloader).
         scope.ServiceProvider.GetRequiredService<CatalogPreloader>().TriggerOnce();
+    }
+
+    // Port de App.xaml.cs.BackfillSupertypesAsync (desktop) : évite de refaire un fetch réseau par
+    // carte juste pour récupérer Supertype — même fichier de seed embarqué (CardId -> code compact
+    // T/E/vide), copié tel quel dans Resources/Raw. Nécessaire pour que le filtre "Supertype ==
+    // Pokémon" de la stat "le plus collecté" (voir CollectionPageViewModel.LoadStatsAsync) ne
+    // retombe pas à zéro pour tout le catalogue déjà en cache avant ce correctif.
+    private static async Task BackfillSupertypesAsync(MobileAppDbContext db)
+    {
+        try
+        {
+            if (!await db.CachedCards.AnyAsync(c => c.Supertype == null)) return;
+
+            using var stream = await FileSystem.OpenAppPackageFileAsync("supertypes.json");
+            using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
+            var json = await reader.ReadToEndAsync();
+            var map = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            if (map is null || map.Count == 0) return;
+
+            static string Expand(string code) => code switch
+            {
+                "T" => "Trainer",
+                "E" => "Energy",
+                _   => "Pokémon"
+            };
+
+            var nullIds = await db.CachedCards
+                .Where(c => c.Supertype == null)
+                .Select(c => c.CardId)
+                .ToListAsync();
+
+            var toUpdate = nullIds
+                .Where(id => map.ContainsKey(id))
+                .Select(id => (Id: id, Supertype: Expand(map[id])))
+                .ToList();
+
+            if (toUpdate.Count == 0) return;
+
+            // AutoDetectChangesEnabled=false (optimisation desktop) empêcherait SaveChangesAsync de
+            // détecter la mutation de Supertype faite via un simple setter ci-dessous — le batch
+            // tournerait sans erreur mais sans jamais rien persister. Détection par défaut gardée.
+            foreach (var batch in toUpdate.Chunk(500))
+            {
+                var ids = batch.Select(x => x.Id).ToList();
+                var cards = await db.CachedCards.Where(c => ids.Contains(c.CardId)).ToListAsync();
+                foreach (var card in cards)
+                    card.Supertype = batch.First(x => x.Id == card.CardId).Supertype;
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+            }
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"BackfillSupertypesAsync failed: {ex}"); }
     }
 
     // Simple notification au démarrage (pas de bannière globale comme sur desktop — pas de slot
@@ -70,6 +123,7 @@ public class DbInitializer
         TryAlter("ALTER TABLE CachedCards ADD COLUMN Subtypes TEXT");
         TryAlter("ALTER TABLE CachedCards ADD COLUMN Types TEXT");
         TryAlter("ALTER TABLE CachedCards ADD COLUMN Source TEXT NOT NULL DEFAULT 'pokemontcgio'");
+        TryAlter("ALTER TABLE OwnedCards ADD COLUMN IsHolo INTEGER NOT NULL DEFAULT 0");
         TryAlter(@"
             CREATE TABLE IF NOT EXISTS Tags (
                 Id    INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -63,7 +63,7 @@ public class CatalogPreloader
                 {
                     CardId = c.Id, SetId = setId, Name = c.Name, Number = c.Number,
                     ImageSmall = c.Images.Small, ImageLarge = c.Images.Large,
-                    Rarity = c.Rarity, SortOrder = order++,
+                    Rarity = c.Rarity, SortOrder = order++, Supertype = c.Supertype,
                     CmLow  = c.Cardmarket?.Prices?.LowPrice,
                     TcgLow = c.Tcgplayer?.Prices?.Values.FirstOrDefault()?.Low,
                     CmUrl  = c.Cardmarket?.Url,

@@ -55,6 +55,12 @@ public partial class CardItem : ObservableObject
     [NotifyPropertyChangedFor(nameof(ExcludedOpacity))]
     private bool _isExcluded;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HoloOpacity))]
+    private bool _isHolo;
+
+    public double HoloOpacity => IsHolo ? 1.0 : 0.4;
+
     public bool   IsOwned         => Quantity > 0;
     public bool   HasRarity       => Rarity is not null;
     public string FavoriteIcon    => IsWanted ? "★" : "☆";
@@ -76,6 +82,7 @@ public partial class CardItem : ObservableObject
     public Func<CardItem, Task>? OnIncrement       { get; set; }
     public Func<CardItem, Task>? OnDecrement       { get; set; }
     public Func<CardItem, Task>? OnToggleOwned     { get; set; }
+    public Func<CardItem, Task>? OnToggleHolo      { get; set; }
     public Func<CardItem, Task>? OnOpenHd          { get; set; }
     public Func<CardItem, TagItem?, Task>? OnTagChanged { get; set; }
 
@@ -89,6 +96,7 @@ public partial class CardItem : ObservableObject
     [RelayCommand] private Task Increment()      => OnIncrement?.Invoke(this)      ?? Task.CompletedTask;
     [RelayCommand] private Task Decrement()      => OnDecrement?.Invoke(this)      ?? Task.CompletedTask;
     [RelayCommand] private Task ToggleOwned()    => OnToggleOwned?.Invoke(this)    ?? Task.CompletedTask;
+    [RelayCommand] private Task ToggleHolo()     => OnToggleHolo?.Invoke(this)     ?? Task.CompletedTask;
     [RelayCommand] private Task OpenHd()         => OnOpenHd?.Invoke(this)         ?? Task.CompletedTask;
 
     // Les 4 sets "Trainer Kit" demi-deck (EX Latias/Latios, EX Plusle/Minun) partagent un même
@@ -404,7 +412,7 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
                 {
                     CardId = c.Id, SetId = SetId, Name = c.Name, Number = c.Number,
                     ImageSmall = c.Images.Small, ImageLarge = c.Images.Large,
-                    Rarity = c.Rarity, SortOrder = order++,
+                    Rarity = c.Rarity, SortOrder = order++, Supertype = c.Supertype,
                     CmLow  = c.Cardmarket?.Prices?.LowPrice,
                     TcgLow = c.Tcgplayer?.Prices?.Values.FirstOrDefault()?.Low,
                     CmUrl  = c.Cardmarket?.Url,
@@ -416,7 +424,9 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
 
             var cardIds = cached.Select(c => c.CardId).ToList();
 
-            var owned    = await _db.OwnedCards   .Where(o => cardIds.Contains(o.CardId)).ToDictionaryAsync(o => o.CardId, o => o.Quantity);
+            var ownedRows = await _db.OwnedCards.Where(o => cardIds.Contains(o.CardId)).ToListAsync();
+            var owned    = ownedRows.ToDictionary(o => o.CardId, o => o.Quantity);
+            var holoIds  = ownedRows.Where(o => o.IsHolo).Select(o => o.CardId).ToHashSet();
             var wanted   = (await _db.WantedCards  .Where(w => cardIds.Contains(w.CardId)).Select(w => w.CardId).ToListAsync()).ToHashSet();
             var excluded = (await _db.ExcludedCards.Where(e => cardIds.Contains(e.CardId)).Select(e => e.CardId).ToListAsync()).ToHashSet();
             var cardTags = await _db.CardTags.Where(ct => cardIds.Contains(ct.CardId)).ToDictionaryAsync(ct => ct.CardId, ct => ct.TagId);
@@ -433,6 +443,7 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
                     Quantity   = owned.GetValueOrDefault(c.CardId),
                     IsWanted   = wanted.Contains(c.CardId),
                     IsExcluded = excluded.Contains(c.CardId),
+                    IsHolo     = holoIds.Contains(c.CardId),
                     LanguageQuantities = langMap.GetValueOrDefault(c.CardId),
                     // Tag initial posé avant de câbler OnTagChanged ci-dessous, pour ne pas
                     // déclencher d'écriture DB pendant la construction (même piège que desktop).
@@ -445,6 +456,7 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
                 item.OnIncrement      = IncrementAsync;
                 item.OnDecrement      = DecrementAsync;
                 item.OnToggleOwned    = ToggleOwnedAsync;
+                item.OnToggleHolo     = ToggleHoloAsync;
                 item.OnOpenHd         = NavigateToZoomAsync;
                 item.OnTagChanged     = OnCardTagChangedAsync;
                 Cards.Add(item);
@@ -562,6 +574,18 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
             await SaveOwnedAsync(card);
         }
         RefreshCompletion();
+    }
+
+    // Pas de sens de marquer "holo" une carte non possédée — le toggle est désactivé dans la vue
+    // tant que !card.IsOwned (voir SetDetailPage.xaml), donc l'entrée OwnedCards existe toujours
+    // ici en pratique ; no-op défensif sinon plutôt que de créer une possession.
+    private async Task ToggleHoloAsync(CardItem card)
+    {
+        var entry = await _db.OwnedCards.FindAsync(card.CardId);
+        if (entry is null) return;
+        card.IsHolo = !card.IsHolo;
+        entry.IsHolo = card.IsHolo;
+        await _db.SaveChangesAsync();
     }
 
     // Écrit le détail par langue d'une carte (upsert une langue, ou remet tout à zéro si language

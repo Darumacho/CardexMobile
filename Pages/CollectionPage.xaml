@@ -172,6 +172,16 @@
                             <Label TextColor="{StaticResource TextPrimary}" FontSize="13" LineBreakMode="WordWrap">
                                 <Label.FormattedText>
                                     <FormattedString>
+                                        <Span Text="Of those, "/>
+                                        <Span Text="{Binding Stats.TotalHoloCards}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
+                                        <Span Text=" are holo."/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+
+                            <Label TextColor="{StaticResource TextPrimary}" FontSize="13" LineBreakMode="WordWrap">
+                                <Label.FormattedText>
+                                    <FormattedString>
                                         <Span Text="Out of the "/>
                                         <Span Text="{Binding Stats.SetsBegun}" FontAttributes="Bold" TextColor="{StaticResource WantedColor}"/>
                                         <Span Text=" sets you've begun, "/>
