@@ -36,6 +36,11 @@ public partial class CollectionPageViewModel : ObservableObject
 
     [ObservableProperty] private CollectionStatsViewModel? _stats;
     public bool HasStats => _settings.ShowStats && Stats is not null;
+    // Lu directement depuis _settings (pas d'[ObservableProperty]) : cette page est recréée
+    // (AddTransient) à chaque navigation, donc la valeur est toujours fraîche sans notification
+    // nécessaire — même raisonnement que HasStats ci-dessus.
+    public bool StatsTeamMode => _settings.StatsTeamMode;
+    public bool StatsSingleMode => !StatsTeamMode;
     public bool HasNoStats => !HasStats && !IsBusy;
 
     // Blocs dépliables/repliables — état persisté via ExpandedStateStore (Preferences), restauré
@@ -237,12 +242,13 @@ public partial class CollectionPageViewModel : ObservableObject
         // CleanSpeciesName) : sans ça, "Lugia", "Shining Lugia", "Lugia V", "Lugia VSTAR"... sont
         // comptés séparément et aucune variante individuelle ne ressort comme "la plus collectée".
         // Filtré sur Supertype "Pokémon" : sinon Energy/Trainer faussaient le classement.
-        var topPokemon = ownedRows
+        var topPokemonRanked = ownedRows
             .Where(r => r.Supertype == "Pokémon")
             .GroupBy(r => PokeSpriteService.CleanSpeciesName(r.Name))
             .Select(g => new { Name = g.Key, Count = g.Sum(r => r.Quantity) })
             .OrderByDescending(g => g.Count)
-            .FirstOrDefault();
+            .ToList();
+        var topPokemon = topPokemonRanked.FirstOrDefault();
 
         var rarityBreakdown = ownedRows
             .GroupBy(r => string.IsNullOrEmpty(r.Rarity) ? "Unknown" : r.Rarity!)
@@ -266,6 +272,15 @@ public partial class CollectionPageViewModel : ObservableObject
         // masque simplement l'image dans ce cas.
         string? spriteUrl = topPokemon is not null ? await _pokeSprite.GetSpriteUrlAsync(topPokemon.Name) : null;
 
+        // Mode "équipe" : les 6 premiers, avec le sprite du premier déjà récupéré ci-dessus pour
+        // éviter un fetch en double.
+        var topPokemonTeam = new List<PokemonTeamMember>();
+        foreach (var entry in topPokemonRanked.Take(6))
+        {
+            var url = entry == topPokemon ? spriteUrl : await _pokeSprite.GetSpriteUrlAsync(entry.Name);
+            topPokemonTeam.Add(new PokemonTeamMember { Name = entry.Name, Count = entry.Count, SpriteUrl = url });
+        }
+
         Stats = new CollectionStatsViewModel
         {
             TotalOwnedCards = totalOwned,
@@ -276,6 +291,7 @@ public partial class CollectionPageViewModel : ObservableObject
             TopPokemonName = topPokemon?.Name,
             TopPokemonCount = topPokemon?.Count ?? 0,
             TopPokemonSpriteUrl = spriteUrl,
+            TopPokemonTeam = topPokemonTeam,
             RarityBreakdown = rarityBreakdown,
             TopCategories = topCategories,
             UnlockedAchievements = await _db.UnlockedAchievements.CountAsync(),

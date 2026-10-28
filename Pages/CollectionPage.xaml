@@ -194,7 +194,7 @@
                             <!-- FlexLayout plutôt que FormattedText unique : l'icône doit être collée au nom
                                  du Pokémon (pas au début de la phrase), ce qui impose de couper le texte en
                                  deux Labels de part et d'autre de l'Image (un Span ne peut pas contenir de vue). -->
-                            <FlexLayout Wrap="Wrap" AlignItems="Center">
+                            <FlexLayout Wrap="Wrap" AlignItems="Center" IsVisible="{Binding StatsSingleMode}">
                                 <Label Text="Your most-collected Pokémon is "
                                        TextColor="{StaticResource TextPrimary}" FontSize="13" VerticalOptions="Center"/>
                                 <Image Source="{Binding Stats.TopPokemonSpriteUrl}"
@@ -212,6 +212,36 @@
                                         </FormattedString>
                                     </Label.FormattedText>
                                 </Label>
+                            </FlexLayout>
+
+                            <!-- Mode "équipe" : les 6 Pokémon les plus collectés, façon équipe de combat.
+                                 FlexLayout Wrap plutôt qu'une grille stricte : BindableLayout ne
+                                 supporte pas de layout en colonnes (GridItemsLayout est réservé à
+                                 CollectionView), le flow wrap est la seule option propre ici. -->
+                            <Label Text="Your team of favourite Pokémon is :"
+                                   TextColor="{StaticResource TextPrimary}" FontSize="13" LineBreakMode="WordWrap"
+                                   IsVisible="{Binding StatsTeamMode}"/>
+                            <FlexLayout BindableLayout.ItemsSource="{Binding Stats.TopPokemonTeam}"
+                                        IsVisible="{Binding StatsTeamMode}"
+                                        Wrap="Wrap">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:PokemonTeamMember">
+                                        <VerticalStackLayout HorizontalOptions="Center" Spacing="2" WidthRequest="54" Margin="0,0,4,6">
+                                            <Image Source="{Binding SpriteUrl}" WidthRequest="30" HeightRequest="30"
+                                                   IsVisible="{Binding HasSprite}" HorizontalOptions="Center"/>
+                                            <Label Text="{Binding Name}" TextColor="{StaticResource TextPrimary}"
+                                                   FontSize="10" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
+                                            <Label TextColor="{StaticResource WantedColor}" FontSize="9" HorizontalTextAlignment="Center">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="×"/>
+                                                        <Span Text="{Binding Count}"/>
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
                             </FlexLayout>
 
                             <Label TextColor="{StaticResource TextPrimary}" FontSize="13" LineBreakMode="WordWrap">

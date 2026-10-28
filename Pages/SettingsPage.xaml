@@ -82,6 +82,20 @@
                         OnColor="{StaticResource HighlightColor}"/>
             </Grid>
 
+            <Grid ColumnDefinitions="*,Auto"
+                  Padding="16,10"
+                  BackgroundColor="{StaticResource PanelBackground}">
+                <Label Grid.Column="0"
+                       Text="Team mode (show top 6 most-collected Pokémon)"
+                       TextColor="{StaticResource TextPrimary}"
+                       FontSize="14"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center"/>
+                <Switch Grid.Column="1"
+                        IsToggled="{Binding StatsTeamMode}"
+                        OnColor="{StaticResource HighlightColor}"/>
+            </Grid>
+
             <Label Text="COLLECTION BORDER COLOR"
                    TextColor="White"
                    FontSize="11"
