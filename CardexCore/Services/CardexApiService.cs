@@ -1,0 +1,75 @@
+using System.Net.Http;
+using System.Text.Json;
+
+namespace Cardex.Services;
+
+// Port du service desktop (Cardwatcher/Services/CardexApiService.cs) — utilisé ici uniquement par
+// le bouton "reload set" (SetDetailPageViewModel.RefreshSetAsync), pas pour la découverte/
+// comblement en tâche de fond comme sur desktop. Best-effort uniquement : aucune donnée locale
+// n'est jamais écrasée avant confirmation du succès côté appelant.
+public class CardexApiService
+{
+    private readonly HttpClient _http;
+    private static readonly JsonSerializerOptions _json = new() { PropertyNameCaseInsensitive = true };
+
+    public CardexApiService(string apiKey)
+    {
+        _http = new HttpClient { BaseAddress = new Uri("https://cardex-api.dev/api/") };
+        if (!string.IsNullOrEmpty(apiKey))
+            _http.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+    }
+
+    public async Task<List<CardexApiSet>> GetSetsAsync()
+    {
+        try
+        {
+            var all = new List<CardexApiSet>();
+            var page = 1;
+            while (true)
+            {
+                var response = await _http.GetStringAsync($"sets?pageSize=250&page={page}");
+                var result = JsonSerializer.Deserialize<PagedResult<CardexApiSet>>(response, _json);
+                if (result is null || result.Items.Count == 0) break;
+                all.AddRange(result.Items);
+                if (all.Count >= result.TotalCount) break;
+                page++;
+            }
+            return all;
+        }
+        catch { return []; }
+    }
+
+    // Pagine jusqu'à épuisement (certains sets dépassent les 250 de la première page).
+    public async Task<List<CardexApiCard>> GetSetCardsAsync(string setId)
+    {
+        try
+        {
+            var all = new List<CardexApiCard>();
+            var page = 1;
+            while (true)
+            {
+                var response = await _http.GetStringAsync($"sets/{setId}/cards?pageSize=250&page={page}");
+                var result = JsonSerializer.Deserialize<PagedResult<CardexApiCard>>(response, _json);
+                if (result is null || result.Items.Count == 0) break;
+                all.AddRange(result.Items);
+                if (all.Count >= result.TotalCount) break;
+                page++;
+            }
+            return all;
+        }
+        catch { return []; }
+    }
+
+    private record PagedResult<T>(List<T> Items, int TotalCount);
+}
+
+public record CardexApiSet(string Id, string Name, string Series, int Total, string ReleaseDate,
+    string? LogoUrl, string? SymbolUrl, bool StandardLegal, bool ExpandedLegal, string Source);
+
+// PricesUpdatedAt délibérément absent : l'API renvoie ce champ dans des formats non-ISO8601
+// incohérents selon les cartes, ce qui fait planter tout le JsonSerializer.Deserialize de la page
+// concernée — l'appelant restampe plutôt la date à DateTime.UtcNow au moment de l'enregistrement.
+public record CardexApiCard(string Id, string SetId, string Name, string Number, string? ImageSmall,
+    string? ImageLarge, string? Rarity, string? Supertype, List<string>? Subtypes, List<string>? Types,
+    string Source, decimal? CardmarketLowPrice, decimal? TcgplayerLowPrice, string? CardmarketUrl,
+    string? TcgplayerUrl);

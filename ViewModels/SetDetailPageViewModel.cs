@@ -478,6 +478,66 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
         finally { IsBusy = false; }
     }
 
+    // Port de MainViewModel.RefreshSelectedSetAsync côté desktop : l'API Cardex est nettement plus
+    // rapide/fiable que pokemontcg.io pour cette opération précise (mesuré : ~0,3-0,4s et 100% de
+    // réussite contre 2-8s et de fréquents 500/502, y compris sur des sets conséquents comme Cosmic
+    // Eclipse/Ascended Heroes) — on la favorise en priorité, avec repli sur pokemontcg.io (chemin
+    // LoadAsync existant) si Cardex échoue ou renvoie un résultat incomplet. Pas de garde-fou de
+    // complétude affiché (pas de StatusText équivalent sur mobile) : LoadAsync reconstruit la liste
+    // telle quelle, complète ou non, best-effort comme le reste de cette méthode.
+    [RelayCommand]
+    private async Task RefreshSetAsync()
+    {
+        if (string.IsNullOrEmpty(SetId) || IsBusy) return;
+
+        Cards.Clear();
+        IsBusy = true;
+        LoadingText = "Refreshing…";
+
+        try
+        {
+            var apiKey = await LoadCardexApiKeyAsync();
+            var cardexApi = new CardexApiService(apiKey);
+            var cardexCards = await cardexApi.GetSetCardsAsync(SetId);
+            if (cardexCards.Count > 0 && (Total == 0 || cardexCards.Count >= Total))
+            {
+                await _db.CachedCards.Where(c => c.SetId == SetId).ExecuteDeleteAsync();
+                var now = DateTime.UtcNow;
+                _db.CachedCards.AddRange(cardexCards.Select((c, i) => new CachedCard
+                {
+                    CardId = c.Id, SetId = SetId, Name = c.Name, Number = c.Number,
+                    ImageSmall = c.ImageSmall ?? "", ImageLarge = c.ImageLarge,
+                    Rarity = c.Rarity, SortOrder = i,
+                    CmLow = c.CardmarketLowPrice, TcgLow = c.TcgplayerLowPrice, PricesUpdatedAt = now,
+                    CmUrl = c.CardmarketUrl, TcgUrl = c.TcgplayerUrl,
+                    Supertype = c.Supertype,
+                    Subtypes = c.Subtypes is { Count: > 0 } ? string.Join(", ", c.Subtypes) : null,
+                    Types    = c.Types    is { Count: > 0 } ? string.Join(", ", c.Types)    : null,
+                }));
+                await _db.SaveChangesAsync();
+                IsBusy = false;
+                await LoadAsync();
+                return;
+            }
+        }
+        catch { /* best-effort : retombe sur pokemontcg.io ci-dessous */ }
+
+        await _db.CachedCards.Where(c => c.SetId == SetId).ExecuteDeleteAsync();
+        IsBusy = false;
+        await LoadAsync();
+    }
+
+    private static async Task<string> LoadCardexApiKeyAsync()
+    {
+        try
+        {
+            using var stream = await FileSystem.OpenAppPackageFileAsync("cardex-api-key.txt");
+            using var reader = new StreamReader(stream);
+            return (await reader.ReadToEndAsync()).Trim();
+        }
+        catch { return ""; }
+    }
+
     // Construit (à l'ouverture du set) la map CardId -> quantité par langue depuis
     // OwnedCardLanguages. Si plus d'une langue est suivie, toute carte déjà possédée (owned) mais
     // sans détail par langue encore enregistré se voit attribuer rétroactivement tout son stock à

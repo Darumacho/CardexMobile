@@ -4,6 +4,10 @@
 *.jks
 cardex-mobile-release.keystore.password.txt
 
+## Clé API Cardex (catalogue, pas la clé de synchro collection saisie par l'utilisateur) — même
+## secret que Cardwatcher/cardex-api-key.txt, jamais committer.
+Resources/Raw/cardex-api-key.txt
+
 ## APK buildés (artefacts, pas du code) — à uploader en asset de release GitHub, pas à committer.
 *.apk
 

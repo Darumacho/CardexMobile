@@ -47,7 +47,7 @@
 
             <Grid RowDefinitions="Auto,Auto" RowSpacing="8" Padding="16,8">
 
-                <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto">
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
                     <Button Grid.Column="0"
                             Text="{Binding SetFavoriteIcon}"
                             Command="{Binding ToggleSetFavoriteCommand}"
@@ -93,6 +93,20 @@
                            FontAttributes="Bold"
                            VerticalOptions="Center"
                            Margin="12,0,0,0"/>
+                    <!-- Recharge le set depuis le catalogue (API Cardex en priorité, repli
+                         pokemontcg.io) — pour les users qui signalent un set incomplet. -->
+                    <Button Grid.Column="4"
+                            Text="⟳"
+                            Command="{Binding RefreshSetCommand}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                            FontSize="18"
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            TextColor="{StaticResource TextSecondary}"
+                            WidthRequest="36"
+                            HeightRequest="36"
+                            Margin="8,0,0,0"/>
                 </Grid>
 
                 <HorizontalStackLayout Grid.Row="1" Spacing="8">

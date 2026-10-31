@@ -37,17 +37,13 @@ public class PokemonTcgService
         while (true)
         {
             var url = $"cards?q=set.id:{setId}&page={page}&pageSize=250&orderBy=number";
-            ApiResponse<ApiCard>? result;
-            try
-            {
-                var response = await _http.GetStringAsync(url);
-                result = JsonSerializer.Deserialize<ApiResponse<ApiCard>>(response, _json);
-            }
-            catch
-            {
-                if (page == 1) throw; // page 1 : laisser RetryAsync réessayer
-                break;                // pages suivantes : retourner ce qu'on a
-            }
+            // Avant : une page 2+ qui échouait retournait silencieusement ce qui avait déjà été
+            // récupéré, sans lever d'exception — RetryAsync (3 tentatives) ne voyait donc jamais
+            // l'échec et ne réessayait rien, laissant des sets incomplets sans aucune erreur
+            // visible (même bug trouvé et corrigé côté desktop). Laisser l'exception remonter
+            // permet à RetryAsync de reprendre tout le fetch depuis la page 1.
+            var response = await _http.GetStringAsync(url);
+            var result = JsonSerializer.Deserialize<ApiResponse<ApiCard>>(response, _json);
             if (result is null || result.Data.Count == 0) break;
             all.AddRange(result.Data);
             progress?.Report(all.Count);
