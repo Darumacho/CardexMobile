@@ -10,10 +10,11 @@ namespace CardexMobile.ViewModels;
 
 public partial class SetItem : ObservableObject
 {
-    public string SetId   { get; init; } = "";
-    public string Name    { get; init; } = "";
-    public string LogoUrl { get; init; } = "";
-    public int    Total   { get; init; }
+    public string SetId     { get; init; } = "";
+    public string Name      { get; init; } = "";
+    public string LogoUrl   { get; init; } = "";
+    public string SymbolUrl { get; init; } = "";
+    public int    Total     { get; init; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CompletionText))]
@@ -91,6 +92,13 @@ public partial class SetsPageViewModel : ObservableObject
     public bool IsNotBusy => !IsBusy;
     partial void OnIsBusyChanged(bool value) => OnPropertyChanged(nameof(IsNotBusy));
 
+    // Lu directement depuis _settings (pas d'[ObservableProperty]) : cette page est recréée
+    // (AddTransient) à chaque navigation, donc la valeur est toujours fraîche sans notification
+    // nécessaire — même raisonnement que StatsTeamMode sur CollectionPageViewModel. Mobile affiche
+    // l'artwork par défaut (comme aujourd'hui) ; cocher cette option bascule sur l'icône — c'est
+    // l'inverse de desktop, qui affiche l'icône par défaut et propose l'artwork en option.
+    public bool ShowSetIconInSearch => _settings.ShowSetIconInSearch;
+
     public SetsPageViewModel(MobileAppDbContext db, PokemonTcgService tcgService, DbInitializer dbInit, AppSettings settings)
     {
         _db = db;
@@ -140,7 +148,7 @@ public partial class SetsPageViewModel : ObservableObject
                     .OrderBy(s => s.ReleaseDate)
                     .Select(s => new SetItem
                     {
-                        SetId = s.SetId, Name = s.Name, LogoUrl = s.LogoUrl, Total = s.Total,
+                        SetId = s.SetId, Name = s.Name, LogoUrl = s.LogoUrl, SymbolUrl = s.SymbolUrl, Total = s.Total,
                         OwnedCount = ownedBySet.GetValueOrDefault(s.SetId),
                         BorderColorHex = _settings.CollectionBorderColor
                     }).ToList();

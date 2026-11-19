@@ -2,10 +2,16 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             xmlns:conv="clr-namespace:CardexMobile.Converters"
              x:Class="CardexMobile.Pages.SetsPage"
              x:DataType="vm:SetsPageViewModel"
+             x:Name="PageRoot"
              Title="Sets"
              BackgroundColor="{StaticResource PageBackground}">
+
+    <ContentPage.Resources>
+        <conv:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+    </ContentPage.Resources>
 
     <Shell.TitleView>
         <Image Source="appname.png"
@@ -66,11 +72,20 @@
                                   Padding="12,8"
                                   ColumnSpacing="12">
 
+                                <!-- Artwork par défaut, icône si l'option est activée (inverse de
+                                     desktop, voir SetsPageViewModel.ShowSetIconInSearch). -->
                                 <Image Grid.Column="0"
                                        Source="{Binding LogoUrl}"
                                        HeightRequest="38"
                                        Aspect="AspectFit"
-                                       HorizontalOptions="Start"/>
+                                       HorizontalOptions="Start"
+                                       IsVisible="{Binding Source={x:Reference PageRoot}, Path=BindingContext.ShowSetIconInSearch, Converter={StaticResource InvertedBoolConverter}}"/>
+                                <Image Grid.Column="0"
+                                       Source="{Binding SymbolUrl}"
+                                       HeightRequest="38"
+                                       Aspect="AspectFit"
+                                       HorizontalOptions="Start"
+                                       IsVisible="{Binding Source={x:Reference PageRoot}, Path=BindingContext.ShowSetIconInSearch}"/>
 
                                 <Label Grid.Column="1"
                                        Text="{Binding Name}"

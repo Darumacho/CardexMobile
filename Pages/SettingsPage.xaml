@@ -96,6 +96,20 @@
                         OnColor="{StaticResource HighlightColor}"/>
             </Grid>
 
+            <Grid ColumnDefinitions="*,Auto"
+                  Padding="16,10"
+                  BackgroundColor="{StaticResource PanelBackground}">
+                <Label Grid.Column="0"
+                       Text="Show set icon instead of artwork in Sets"
+                       TextColor="{StaticResource TextPrimary}"
+                       FontSize="14"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center"/>
+                <Switch Grid.Column="1"
+                        IsToggled="{Binding ShowSetIconInSearch}"
+                        OnColor="{StaticResource HighlightColor}"/>
+            </Grid>
+
             <Label Text="COLLECTION BORDER COLOR"
                    TextColor="White"
                    FontSize="11"

@@ -24,6 +24,7 @@ public partial class SettingsPageViewModel : ObservableObject
     [ObservableProperty] private bool   _showMyCollection;
     [ObservableProperty] private bool   _showStats;
     [ObservableProperty] private bool   _statsTeamMode;
+    [ObservableProperty] private bool   _showSetIconInSearch;
     [ObservableProperty] private string _collectionBorderColor = "#3a7fc1";
     [ObservableProperty] private string _collectionSyncApiKey = "";
     [ObservableProperty] private bool   _isSyncing;
@@ -49,6 +50,7 @@ public partial class SettingsPageViewModel : ObservableObject
         _showMyCollection = settings.ShowMyCollection;
         _showStats = settings.ShowStats;
         _statsTeamMode = settings.StatsTeamMode;
+        _showSetIconInSearch = settings.ShowSetIconInSearch;
         _collectionBorderColor = settings.CollectionBorderColor;
         _collectionSyncApiKey = settings.CollectionSyncApiKey ?? "";
 
@@ -123,6 +125,12 @@ public partial class SettingsPageViewModel : ObservableObject
     partial void OnStatsTeamModeChanged(bool value)
     {
         _settings.StatsTeamMode = value;
+        _settings.Save();
+    }
+
+    partial void OnShowSetIconInSearchChanged(bool value)
+    {
+        _settings.ShowSetIconInSearch = value;
         _settings.Save();
     }
 

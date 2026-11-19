@@ -10,6 +10,9 @@ public class AppSettings
     public bool ShowMyCollection { get; set; } = true;
     public bool ShowStats { get; set; } = true;
     public bool StatsTeamMode { get; set; } = false;
+    // Inverse du défaut desktop (voir SetsPageViewModel.ShowSetIconInSearch) : mobile montre
+    // l'artwork par défaut, cocher cette option bascule sur l'icône du set.
+    public bool ShowSetIconInSearch { get; set; } = false;
 
     // Clé API Cardex fournie par l'utilisateur pour la synchro de collection (distincte de la clé
     // catalogue PokemonTcgService ci-dessus) — bookkeeping purement local, jamais envoyé dans le
