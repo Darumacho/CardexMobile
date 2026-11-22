@@ -15,4 +15,20 @@
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+	<!-- Lecteur OCR (scan de carte, en test) -->
+	<uses-permission android:name="android.permission.CAMERA" />
+	<uses-feature android:name="android.hardware.camera" android:required="false" />
+	<!-- CommunityToolkit.Maui.Camera (scan live) vérifie cette permission dès la connexion du
+	     handler du CameraView, même pour la capture de photo seule (le contrôle supporte aussi
+	     l'enregistrement vidéo) — absente, ça lève une exception non rattrapée au chargement de
+	     la page. On ne déclenche jamais réellement l'enregistrement audio côté app. -->
+	<uses-permission android:name="android.permission.RECORD_AUDIO" />
+	<!-- Android 11+ (API 30+) restreint la visibilité des packages par défaut : sans cette
+	     déclaration, MediaPicker.CapturePhotoAsync() ne trouve aucune app capable de résoudre
+	     l'intent de capture photo, même si une caméra existe bel et bien sur l'appareil. -->
+	<queries>
+		<intent>
+			<action android:name="android.media.action.IMAGE_CAPTURE" />
+		</intent>
+	</queries>
 </manifest>

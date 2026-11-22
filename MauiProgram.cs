@@ -17,6 +17,7 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
+            .UseMauiCommunityToolkitCamera()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -49,6 +50,9 @@ public static class MauiProgram
         builder.Services.AddTransient<AchievementsPage>();
         builder.Services.AddTransient<TagsPage>();
         builder.Services.AddTransient<StatsPage>();
+        builder.Services.AddTransient<CardScanService>();
+        builder.Services.AddTransient<ScanTestPageViewModel>();
+        builder.Services.AddTransient<ScanTestPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
@@ -62,6 +66,10 @@ public static class MauiProgram
         // Démarre l'init DB (EnsureCreated + migrations + seed) en tâche de fond dès maintenant —
         // ne pas attendre ici (voir DbInitializer), sous peine d'ANR au démarrage.
         app.Services.GetRequiredService<DbInitializer>();
+
+        // Préchauffe le cache de scoring du Card Scan (voir CardScanService.WarmupAsync) pendant que
+        // l'utilisateur navigue dans l'app, pour que le premier scan réel n'en paie pas le coût.
+        _ = app.Services.GetRequiredService<CardScanService>().WarmupAsync();
 
         return app;
     }

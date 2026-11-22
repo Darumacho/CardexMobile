@@ -18,7 +18,8 @@ public partial class SearchPage : ContentPage
         if (e.CurrentSelection.FirstOrDefault() is CardListItem item)
         {
             ResultsView.SelectedItem = null;
-            await Shell.Current.GoToAsync($"{nameof(SetDetailPage)}?setId={item.SetId}&setName={Uri.EscapeDataString(item.SetName)}");
+            await Shell.Current.GoToAsync(
+                $"{nameof(SetDetailPage)}?setId={item.SetId}&setName={Uri.EscapeDataString(item.SetName)}&cardId={Uri.EscapeDataString(item.CardId)}");
         }
     }
 }

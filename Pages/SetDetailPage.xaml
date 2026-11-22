@@ -128,7 +128,8 @@
         </Grid>
 
         <!-- Card list -->
-        <CollectionView Grid.Row="2"
+        <CollectionView x:Name="CardsListView"
+                        Grid.Row="2"
                         ItemsSource="{Binding FilteredCards}"
                         IsVisible="{Binding IsListView}"
                         BackgroundColor="{StaticResource PageBackground}">
@@ -140,11 +141,20 @@
                          owned l'emporte sur wanted si les deux sont vrais (triggers dans cet ordre). -->
                     <Border StrokeThickness="2" Stroke="Transparent" Margin="0,0,0,1">
                         <Border.Triggers>
-                            <DataTrigger TargetType="Border" Binding="{Binding IsWanted}" Value="True">
+                            <!-- Un seul trigger actif à la fois (BorderState est un état exclusif),
+                                 contrairement à trois DataTrigger indépendants sur Stroke dont la
+                                 résolution n'est pas fiable en MAUI quand plusieurs sont vrais à la
+                                 fois (observé : le surlignage n'apparaissait pas sur une carte déjà
+                                 possédée). -->
+                            <DataTrigger TargetType="Border" Binding="{Binding BorderState}" Value="Wanted">
                                 <Setter Property="Stroke" Value="{StaticResource WantedColor}"/>
                             </DataTrigger>
-                            <DataTrigger TargetType="Border" Binding="{Binding IsOwned}" Value="True">
+                            <DataTrigger TargetType="Border" Binding="{Binding BorderState}" Value="Owned">
                                 <Setter Property="Stroke" Value="{StaticResource OwnedColor}"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding BorderState}" Value="Highlighted">
+                                <Setter Property="Stroke" Value="{StaticResource HighlightColor}"/>
+                                <Setter Property="StrokeThickness" Value="4"/>
                             </DataTrigger>
                         </Border.Triggers>
                     <Grid ColumnDefinitions="80,*"
@@ -404,7 +414,8 @@
         </CollectionView>
 
         <!-- Binder view : grille d'images seules, comme le desktop -->
-        <CollectionView Grid.Row="2"
+        <CollectionView x:Name="CardsGridView"
+                        Grid.Row="2"
                         ItemsSource="{Binding FilteredCards}"
                         IsVisible="{Binding IsBinderView}"
                         BackgroundColor="{StaticResource PageBackground}">
@@ -424,11 +435,15 @@
                                                     LongPressDuration="500"/>
                         </Border.Behaviors>
                         <Border.Triggers>
-                            <DataTrigger TargetType="Border" Binding="{Binding IsOwned}" Value="True">
+                            <DataTrigger TargetType="Border" Binding="{Binding BorderState}" Value="Owned">
                                 <Setter Property="Stroke" Value="{StaticResource OwnedColor}"/>
                             </DataTrigger>
-                            <DataTrigger TargetType="Border" Binding="{Binding IsWanted}" Value="True">
+                            <DataTrigger TargetType="Border" Binding="{Binding BorderState}" Value="Wanted">
                                 <Setter Property="Stroke" Value="{StaticResource WantedColor}"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding BorderState}" Value="Highlighted">
+                                <Setter Property="Stroke" Value="{StaticResource HighlightColor}"/>
+                                <Setter Property="StrokeThickness" Value="4"/>
                             </DataTrigger>
                         </Border.Triggers>
                         <Image Source="{Binding ImageUrl}" Aspect="AspectFit"/>

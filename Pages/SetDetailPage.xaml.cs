@@ -11,6 +11,7 @@ public partial class SetDetailPage : ContentPage
         InitializeComponent();
         _vm = vm;
         BindingContext = vm;
+        vm.ScrollToCardRequested += OnScrollToCardRequested;
     }
 
     protected override async void OnAppearing()
@@ -23,6 +24,23 @@ public partial class SetDetailPage : ContentPage
             // directement la CardItem partagée sans passer par SetDetailPageViewModel) — pas
             // besoin d'un rechargement complet puisque Cards est déjà peuplé.
             _vm.RefreshCompletion();
+    }
+
+    // Venant de Search avec une carte ciblée (voir SetDetailPageViewModel.LoadAsync) — scrolle
+    // jusqu'à elle dans la vue actuellement visible (liste ou classeur) et surligne brièvement.
+    private async void OnScrollToCardRequested(object? sender, CardItem card)
+    {
+        // L'event est levé juste après OnPropertyChanged(FilteredCards) côté ViewModel — la
+        // CollectionView native n'a pas encore forcément fini de traiter ce nouvel ItemsSource à cet
+        // instant précis (changement de binding → mise à jour de l'adapter natif, pas synchrone).
+        // Sans ce délai, ScrollTo s'exécute sur une liste encore vide côté natif et ne fait rien.
+        await Task.Delay(250);
+
+        var view = _vm.IsListView ? CardsListView : CardsGridView;
+        view.ScrollTo(card, position: ScrollToPosition.Center, animate: true);
+
+        await Task.Delay(4000);
+        card.IsHighlighted = false;
     }
 
     private async void OnCardImageTapped(object sender, TappedEventArgs e)

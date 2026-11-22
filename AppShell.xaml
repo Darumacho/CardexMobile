@@ -63,6 +63,10 @@
         <ShellContent ContentTemplate="{DataTemplate pages:TagsPage}" Route="TagsPage"/>
     </FlyoutItem>
 
+    <FlyoutItem Title="Card scan" FlyoutIcon="camera_icon.png" Route="ScanTestFlyoutItem">
+        <ShellContent ContentTemplate="{DataTemplate pages:ScanTestPage}" Route="ScanTestPage"/>
+    </FlyoutItem>
+
     <!-- Action directe (pas de navigation) : même style icône+texte que les FlyoutItem ci-dessus,
          mais via Shell.MenuItemTemplate puisque MenuItem n'expose pas FlyoutIcon/Title. -->
     <Shell.MenuItemTemplate>

@@ -36,6 +36,11 @@ public class PokeSpriteService
     private static readonly string[] StripPrefixes =
         ["Dark ", "Light ", "Shining ", "Mega ", "Radiant ", "Team Rocket's ", "Rocket's ", "Ancient ", "Future "];
 
+    // Cartes "amenée par un dresseur" (ex. "Cynthia's Garchomp ex", "Iono's Bellibolt ex") : préfixe
+    // générique, pas une liste fixe comme StripPrefixes ci-dessus (trop de dresseurs possibles).
+    // Même pattern que CardScanService.PossessivePrefixPattern côté scan OCR.
+    private static readonly Regex PossessivePrefixPattern = new(@"^\S+['’]s\s+", RegexOptions.Compiled);
+
     public async Task<string?> GetSpriteUrlAsync(string cardName)
     {
         foreach (var candidate in BuildCandidates(cardName))
@@ -54,13 +59,19 @@ public class PokeSpriteService
     // d'un collectionneur, contrairement aux simples variantes de carte.
     public static string CleanSpeciesName(string cardName)
     {
-        var cleaned = cardName;
+        var cleaned = PossessivePrefixPattern.Replace(cardName, "");
         foreach (var p in StripPrefixes)
             if (cleaned.StartsWith(p, StringComparison.OrdinalIgnoreCase))
                 cleaned = cleaned[p.Length..];
         cleaned = SuffixPattern.Replace(cleaned, "");
         return cleaned.Trim();
     }
+
+    // Slug du sprite local embarqué (Resources/Raw/pokesprites/{slug}.png, voir mémoire
+    // project_ocr_scan) pour une carte donnée — même nettoyage que CleanSpeciesName, pas de
+    // résolution de forme régionale (on n'a récupéré que le sprite de l'espèce de base ; une carte
+    // "Alolan Raichu" n'aura donc pas d'icône plutôt qu'une mauvaise icône).
+    public static string GetLocalSpriteSlug(string cardName) => Slugify(CleanSpeciesName(cardName));
 
     private static IEnumerable<string> BuildCandidates(string cardName)
     {

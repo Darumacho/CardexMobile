@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CardexMobile.ViewModels"
+             xmlns:conv="clr-namespace:CardexMobile.Converters"
+             xmlns:camera="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui.Camera"
+             x:Class="CardexMobile.Pages.ScanTestPage"
+             x:Name="PageRoot"
+             x:DataType="vm:ScanTestPageViewModel"
+             Title="Card Scan"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <ContentPage.Resources>
+        <conv:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+
+        <DataTemplate x:Key="MatchItemTemplate" x:DataType="vm:CardListItem">
+            <Grid ColumnDefinitions="56,*,Auto"
+                  Padding="12,8"
+                  ColumnSpacing="12"
+                  BackgroundColor="{StaticResource PanelBackground}"
+                  Margin="0,0,0,1">
+
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.GoToSetCommand}"
+                                           CommandParameter="{Binding .}"/>
+                </Grid.GestureRecognizers>
+
+                <Image Grid.Column="0"
+                       Source="{Binding ImageUrl}"
+                       Aspect="AspectFit"/>
+
+                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                    <HorizontalStackLayout Spacing="4">
+                        <Image Source="{Binding SpriteSource}"
+                               IsVisible="{Binding HasSprite}"
+                               WidthRequest="20"
+                               HeightRequest="20"
+                               Aspect="AspectFit"/>
+                        <Label Text="{Binding Name}"
+                               TextColor="{StaticResource TextPrimary}"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               LineBreakMode="TailTruncation"/>
+                    </HorizontalStackLayout>
+                    <Label TextColor="{StaticResource TextSecondary}" FontSize="11">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding SetName}"/>
+                                <Span Text=" · #"/>
+                                <Span Text="{Binding Number}"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="4">
+                            <Image Source="cardmarket.png" WidthRequest="12" HeightRequest="12" VerticalOptions="Center"/>
+                            <Label Text="{Binding CmText}" TextColor="{StaticResource TextSecondary}" FontSize="11" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="4">
+                            <Image Source="tcgplayer.png" WidthRequest="12" HeightRequest="12" VerticalOptions="Center"/>
+                            <Label Text="{Binding TcgText}" TextColor="{StaticResource TextSecondary}" FontSize="11" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center" HorizontalOptions="End">
+                    <HorizontalStackLayout Spacing="4" IsVisible="{Binding HasOwned}" HorizontalOptions="End">
+                        <Label Text="✓" TextColor="{StaticResource OwnedColor}" FontSize="14" FontAttributes="Bold"/>
+                        <Label TextColor="{StaticResource OwnedColor}" FontSize="14" FontAttributes="Bold">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="Owned x"/>
+                                    <Span Text="{Binding OwnedQuantity}"/>
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </HorizontalStackLayout>
+
+                    <Button Text="Add as Owned"
+                            FontSize="11"
+                            Padding="8,4"
+                            BackgroundColor="{StaticResource OwnedColor}"
+                            TextColor="White"
+                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IncrementOwnedCommand}"
+                            CommandParameter="{Binding .}"/>
+                </VerticalStackLayout>
+            </Grid>
+        </DataTemplate>
+    </ContentPage.Resources>
+
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="32,Auto,32" HorizontalOptions="Center">
+            <Image Grid.Column="0" Source="camera_icon.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFit" HorizontalOptions="Start" VerticalOptions="Center"/>
+            <Label Grid.Column="1" Text="Card Scan" TextColor="White" FontAttributes="Bold" FontSize="18" Margin="10,0" VerticalOptions="Center"/>
+        </Grid>
+    </Shell.TitleView>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
+
+            <Label Text="Take a photo of a card and check whether the collector number (bottom, e.g. &quot;4/102&quot;) gets read correctly."
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   LineBreakMode="WordWrap"/>
+
+            <Button Text="📷 Take photo"
+                    Command="{Binding TakePhotoCommand}"
+                    BackgroundColor="{StaticResource PanelBackground}"
+                    TextColor="{StaticResource TextPrimary}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+
+            <Button Text="🖼️ Choose photo (gallery)"
+                    Command="{Binding PickPhotoCommand}"
+                    BackgroundColor="{StaticResource PanelBackground}"
+                    TextColor="{StaticResource TextPrimary}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+
+            <Button Command="{Binding ToggleLiveModeCommand}"
+                    BackgroundColor="{StaticResource PanelBackground}"
+                    TextColor="{StaticResource TextPrimary}">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsLiveModeActive}" Value="False">
+                        <Setter Property="Text" Value="📹 Live scan"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsLiveModeActive}" Value="True">
+                        <Setter Property="Text" Value="⏹ Stop live scan"/>
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <camera:CameraView x:Name="CameraViewControl"
+                                HeightRequest="480"
+                                BackgroundColor="Black"
+                                IsVisible="{Binding IsLiveModeActive}"/>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource HighlightColor}"/>
+
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="#ff6b6b"
+                   FontSize="12"
+                   IsVisible="{Binding HasError}"
+                   LineBreakMode="WordWrap"/>
+
+            <Image Source="{Binding PhotoPath}"
+                   IsVisible="{Binding HasPhoto}"
+                   Aspect="AspectFit"
+                   MaximumHeightRequest="320"/>
+
+            <Label Text="DETECTED NAME" TextColor="{StaticResource TextSecondary}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1" Margin="0,8,0,0"/>
+            <HorizontalStackLayout Spacing="8">
+                <Image Source="{Binding DetectedNameSprite}"
+                       IsVisible="{Binding HasDetectedNameSprite}"
+                       WidthRequest="32"
+                       HeightRequest="32"
+                       Aspect="AspectFit"/>
+                <Label Text="{Binding DetectedName}"
+                       TextColor="{StaticResource WantedColor}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <Label Text="DETECTED NUMBER" TextColor="{StaticResource TextSecondary}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1" Margin="0,8,0,0"/>
+            <Label Text="{Binding DetectedNumber}"
+                   TextColor="{StaticResource WantedColor}"
+                   FontSize="24"
+                   FontAttributes="Bold"/>
+
+            <Label Text="MATCHES"
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1" Margin="0,8,0,0"
+                   IsVisible="{Binding HasScanHistory, Converter={StaticResource InvertedBoolConverter}}"/>
+
+            <Label Text="No matching card found in the local catalog."
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   IsVisible="{Binding HasNoMatches}"/>
+
+            <!-- Photo unique (ou live avant la 1ère confirmation) : liste plate classique. Navigation
+                 vers le set via le TapGestureRecognizer du template partagé (pas de SelectionChanged
+                 ici, pour rester cohérent avec l'historique live qui utilise un BindableLayout). -->
+            <CollectionView ItemsSource="{Binding Matches}"
+                            ItemTemplate="{StaticResource MatchItemTemplate}"
+                            SelectionMode="None"
+                            IsVisible="{Binding HasScanHistory, Converter={StaticResource InvertedBoolConverter}}"/>
+
+            <!-- Scan live : historique repliable, une section par carte distincte confirmée. Reste
+                 visible après un arrêt manuel (IsVisible basé sur le contenu, pas sur IsLiveModeActive). -->
+            <Label Text="SCANNED CARDS"
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="11" FontAttributes="Bold" CharacterSpacing="1" Margin="0,8,0,0"
+                   IsVisible="{Binding HasScanHistory}"/>
+
+            <CollectionView ItemsSource="{Binding ScanHistory}"
+                            IsVisible="{Binding HasScanHistory}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ScanSection">
+                        <VerticalStackLayout Spacing="0" Margin="0,0,0,8">
+                            <Label Text="{Binding Header}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   Padding="12,10"
+                                   BackgroundColor="{StaticResource PanelBackground}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}"/>
+                                </Label.GestureRecognizers>
+                            </Label>
+
+                            <VerticalStackLayout IsVisible="{Binding IsExpanded}"
+                                                  BindableLayout.ItemsSource="{Binding Matches}"
+                                                  BindableLayout.ItemTemplate="{StaticResource MatchItemTemplate}"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Margin="0,8,0,0" TextColor="{StaticResource HighlightColor}" FontSize="12">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleDetailsCommand}"/>
+                </Label.GestureRecognizers>
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsDetailsExpanded}" Value="False">
+                        <Setter Property="Text" Value="Show details ▾"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsDetailsExpanded}" Value="True">
+                        <Setter Property="Text" Value="Hide details ▴"/>
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+            <Label Text="RAW OCR TEXT" TextColor="{StaticResource TextSecondary}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1" Margin="0,8,0,0" IsVisible="{Binding IsDetailsExpanded}"/>
+            <Label Text="{Binding RawText}"
+                   TextColor="{StaticResource TextPrimary}"
+                   FontSize="12"
+                   FontFamily="Monospace"
+                   LineBreakMode="WordWrap"
+                   IsVisible="{Binding IsDetailsExpanded}"/>
+
+            <Label Text="NUMBER REGION OCR (zoomed retry)" TextColor="{StaticResource TextSecondary}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1" Margin="0,8,0,0" IsVisible="{Binding ShowNumberRegionText}"/>
+            <Label Text="{Binding NumberRegionText}"
+                   TextColor="{StaticResource TextPrimary}"
+                   FontSize="12"
+                   FontFamily="Monospace"
+                   LineBreakMode="WordWrap"
+                   IsVisible="{Binding ShowNumberRegionText}"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

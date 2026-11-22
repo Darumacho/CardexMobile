@@ -28,6 +28,7 @@ public partial class CardItem : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsOwned))]
     [NotifyPropertyChangedFor(nameof(LanguageSummary))]
+    [NotifyPropertyChangedFor(nameof(BorderState))]
     private int _quantity;
 
     // Détail par langue, utilisé seulement en affichage ici (le select/stepper vit sur
@@ -49,6 +50,7 @@ public partial class CardItem : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FavoriteIcon))]
+    [NotifyPropertyChangedFor(nameof(BorderState))]
     private bool _isWanted;
 
     [ObservableProperty]
@@ -59,12 +61,25 @@ public partial class CardItem : ObservableObject
     [NotifyPropertyChangedFor(nameof(HoloOpacity))]
     private bool _isHolo;
 
+    // Surlignage temporaire après navigation depuis Search (voir SetDetailPageViewModel.LoadAsync /
+    // ScrollToCardRequested) — remis à false par le code-behind après quelques secondes.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BorderState))]
+    private bool _isHighlighted;
+
     public double HoloOpacity => IsHolo ? 1.0 : 0.4;
 
     public bool   IsOwned         => Quantity > 0;
     public bool   HasRarity       => Rarity is not null;
     public string FavoriteIcon    => IsWanted ? "★" : "☆";
     public double ExcludedOpacity => IsExcluded ? 0.45 : 1.0;
+
+    // État unique combinant surlignage/possédé/souhaité pour le liseré de bordure — évite d'avoir
+    // plusieurs DataTrigger actifs simultanément sur la même propriété (Stroke), dont la résolution
+    // en MAUI n'est pas fiable quand plusieurs conditions sont vraies à la fois (observé en test :
+    // le surlignage ne s'affichait pas sur une carte déjà possédée). Priorité : surlignage > possédé
+    // > souhaité.
+    public string BorderState => IsHighlighted ? "Highlighted" : IsOwned ? "Owned" : IsWanted ? "Wanted" : "None";
 
     public void NotifyLanguageQuantitiesChanged() => OnPropertyChanged(nameof(LanguageSummary));
 
@@ -264,6 +279,14 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     private readonly AppSettings        _settings;
     private string _setSeries = "";
 
+    // Carte à cibler après chargement (ex. venant de Search) — consommé une fois dans LoadAsync,
+    // voir ApplyQueryAttributes et ScrollToCardRequested.
+    private string? _targetCardId;
+
+    // Le ViewModel n'a pas accès au CollectionView (vit dans la page) — ce event notifie le
+    // code-behind une fois la carte ciblée localisée dans Cards, pour qu'il scrolle jusqu'à elle.
+    public event EventHandler<CardItem>? ScrollToCardRequested;
+
     // Vrai quand plus d'une langue est suivie (Settings → Languages) : le compteur simple +/- est
     // remplacé par le bouton de résumé par langue (ouvre LanguageBreakdownPage). Même sémantique
     // que CardViewModel.IsMultiLanguageMode côté desktop.
@@ -368,8 +391,13 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
     {
         if (query.TryGetValue("setId",   out var sid))   SetId   = sid?.ToString() ?? "";
         if (query.TryGetValue("setName", out var sname)) SetName = Uri.UnescapeDataString(sname?.ToString() ?? "");
+        _targetCardId = query.TryGetValue("cardId", out var cid) ? Uri.UnescapeDataString(cid?.ToString() ?? "") : null;
         Cards.Clear();
         SearchText = "";
+
+        // Sinon la carte ciblée pourrait être filtrée hors de FilteredCards avant même d'avoir pu
+        // la localiser pour le scroll/surlignage.
+        if (_targetCardId is not null) HideOwned = false;
     }
 
     [RelayCommand]
@@ -465,6 +493,19 @@ public partial class SetDetailPageViewModel : ObservableObject, IQueryAttributab
             RefreshCompletion();
             OnPropertyChanged(nameof(FilteredCards));
             OnPropertyChanged(nameof(HasNoCards));
+
+            // Carte ciblée (venant de Search) : consommée une seule fois, le code-behind fait le
+            // scroll (le ViewModel n'a pas accès au CollectionView) et surligne brièvement.
+            if (_targetCardId is not null)
+            {
+                var target = Cards.FirstOrDefault(c => c.CardId == _targetCardId);
+                _targetCardId = null;
+                if (target is not null)
+                {
+                    target.IsHighlighted = true;
+                    ScrollToCardRequested?.Invoke(this, target);
+                }
+            }
         }
         catch (Exception ex)
         {
