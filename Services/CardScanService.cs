@@ -73,7 +73,14 @@ public class CardScanService(MobileAppDbContext db, DbInitializer dbInit)
         // restent cohérentes avec une image droite plutôt que le paysage brut du capteur.
         photoBytes = await EnsureUprightAsync(photoBytes);
 
-        var result = await OcrPlugin.Default.RecognizeTextAsync(photoBytes, tryHard: true);
+        // Retour utilisateur : l'OCR peine en faible luminosité (texte sombre, peu contrasté). On ne
+        // corrige QUE si la photo est détectée comme sombre (voir EnhanceForLowLightAsync), pour ne
+        // pas risquer de dégrader les photos déjà bien éclairées qui fonctionnent déjà. Ne touche
+        // pas aux dimensions : les coordonnées OCR (FindNumberRegionBox) restent valables, et le
+        // recadrage de secours ci-dessous repart de photoBytes d'origine, pas de cette version.
+        var ocrBytes = await EnhanceForLowLightAsync(photoBytes);
+
+        var result = await OcrPlugin.Default.RecognizeTextAsync(ocrBytes, tryHard: true);
         if (!result.Success)
             throw new InvalidOperationException("OCR failed to process the image.");
 
@@ -177,6 +184,70 @@ public class CardScanService(MobileAppDbContext db, DbInitializer dbInit)
         using var outStream = new MemoryStream();
         rotated.Compress(Bitmap.CompressFormat.Jpeg!, 95, outStream);
         return outStream.ToArray();
+    }
+
+    // Luminance moyenne en-dessous de laquelle une photo est considérée comme sombre (sur 255) —
+    // seuil choisi empiriquement, pas de mesure précise disponible pour l'affiner davantage.
+    private const int DarkLuminanceThreshold = 100;
+    private const int TargetLuminance = 150;
+
+    // Corrige luminosité/contraste UNIQUEMENT si la photo est détectée comme sombre (voir
+    // ComputeAverageLuminance) — une photo déjà bien éclairée n'est jamais touchée, pour ne pas
+    // risquer de dégrader les scans qui fonctionnent déjà bien. Contrairement au recadrage de
+    // secours (TryOcrNumberRegionAsync), ne redimensionne/ne recadre rien : les dimensions restent
+    // identiques, donc les coordonnées OCR utilisées plus loin (FindNumberRegionBox) restent valables.
+    private static async Task<byte[]> EnhanceForLowLightAsync(byte[] bytes)
+    {
+        using var bitmap = await BitmapFactory.DecodeByteArrayAsync(bytes, 0, bytes.Length);
+        if (bitmap is null) return bytes;
+
+        var avgLuminance = ComputeAverageLuminance(bitmap);
+        if (avgLuminance >= DarkLuminanceThreshold) return bytes;
+
+        var brightnessBoost = Math.Clamp(TargetLuminance - avgLuminance, 0, 120);
+
+        using var enhanced = Bitmap.CreateBitmap(bitmap.Width, bitmap.Height, Bitmap.Config.Argb8888!);
+        using (var canvas = new Canvas(enhanced))
+        using (var paint = new Android.Graphics.Paint())
+        {
+            // Contraste léger (plus doux que le recadrage de secours, qui lui passe en niveaux de
+            // gris) + décalage additif proportionnel à l'écart par rapport à la luminance cible.
+            const float contrast = 1.15f;
+            var translate = (-0.5f * contrast + 0.5f) * 255f + brightnessBoost;
+            var matrix = new ColorMatrix(
+            [
+                contrast, 0, 0, 0, translate,
+                0, contrast, 0, 0, translate,
+                0, 0, contrast, 0, translate,
+                0, 0, 0, 1, 0
+            ]);
+            paint.SetColorFilter(new ColorMatrixColorFilter(matrix));
+            canvas.DrawBitmap(bitmap, 0, 0, paint);
+        }
+
+        using var outStream = new MemoryStream();
+        enhanced.Compress(Bitmap.CompressFormat.Jpeg!, 95, outStream);
+        return outStream.ToArray();
+    }
+
+    // Échantillonne une version réduite (50x50) plutôt que chaque pixel de la photo complète — la
+    // luminance moyenne n'a pas besoin de précision pixel-perfect, juste d'être rapide.
+    private static int ComputeAverageLuminance(Bitmap bitmap)
+    {
+        const int sampleSize = 50;
+        using var thumb = Bitmap.CreateScaledBitmap(bitmap, sampleSize, sampleSize, true);
+        var pixels = new int[sampleSize * sampleSize];
+        thumb.GetPixels(pixels, 0, sampleSize, 0, 0, sampleSize, sampleSize);
+
+        long sum = 0;
+        foreach (var pixel in pixels)
+        {
+            var r = (pixel >> 16) & 0xFF;
+            var g = (pixel >> 8) & 0xFF;
+            var b = pixel & 0xFF;
+            sum += (long)(0.299 * r + 0.587 * g + 0.114 * b);
+        }
+        return (int)(sum / pixels.Length);
     }
 
     // Boîte englobante serrée (en pixels, sans marge) des éléments contenant un chiffre dans la

@@ -30,6 +30,30 @@ public partial class ScanTestPageViewModel(CardScanService scanService) : Observ
     // Assigné par le code-behind une fois le contrôle réalisé (voir ScanTestPage.xaml.cs).
     public CameraView? CameraView { get; set; }
 
+    // Torche manuelle (jamais automatique) — retour utilisateur : le prétraitement
+    // luminosité/contraste de CardScanService ne suffit pas en vraie faible luminosité (impossible
+    // de récupérer numériquement un détail jamais capturé par le capteur). Pas automatique au
+    // démarrage du live scan : la torche aggraverait les reflets holo sur les cartes brillantes,
+    // seul l'utilisateur sait si ça aide ou gêne dans sa situation.
+    [ObservableProperty] private bool _isTorchOn;
+
+    [RelayCommand]
+    private void ToggleTorch()
+    {
+        if (CameraView is null) return;
+        IsTorchOn = !IsTorchOn;
+        try
+        {
+            CameraView.IsTorchOn = IsTorchOn;
+        }
+        catch
+        {
+            // Torche non supportée par cette caméra/cet appareil — pas bloquant, on annule juste
+            // l'état affiché.
+            IsTorchOn = false;
+        }
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasPhoto))]
     private string? _photoPath;
@@ -275,6 +299,13 @@ public partial class ScanTestPageViewModel(CardScanService scanService) : Observ
         _liveTimer = null;
         CameraView?.StopCameraPreview();
         IsLiveModeActive = false;
+
+        // Ne jamais laisser la torche allumée après la fermeture du scan live.
+        if (IsTorchOn)
+        {
+            IsTorchOn = false;
+            try { if (CameraView is not null) CameraView.IsTorchOn = false; } catch { }
+        }
 
         // Une fois le scan arrêté, on veut pouvoir tout relire sans rouvrir section par section —
         // le repli automatique n'a d'intérêt que pendant le scan actif.

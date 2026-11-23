@@ -129,6 +129,20 @@
                 </Button.Triggers>
             </Button>
 
+            <Button Command="{Binding ToggleTorchCommand}"
+                    BackgroundColor="{StaticResource PanelBackground}"
+                    TextColor="{StaticResource TextPrimary}"
+                    IsVisible="{Binding IsLiveModeActive}">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsTorchOn}" Value="False">
+                        <Setter Property="Text" Value="🔦 Torch off"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsTorchOn}" Value="True">
+                        <Setter Property="Text" Value="🔦 Torch on"/>
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
             <camera:CameraView x:Name="CameraViewControl"
                                 HeightRequest="480"
                                 BackgroundColor="Black"
